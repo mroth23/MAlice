@@ -10,6 +10,8 @@ SDIR=src
 _OBJS = main.o
 OBJS = $(patsubst %,$(ODIR)/%,$(_OBJS))
 
+all: $(OUT)
+
 debug: CXX += -DDEBUG -g
 debug: $(OUT)
 
