@@ -1,20 +1,24 @@
 CXX=clang++
-#CXXFLAGS=-O0 -Wall -Werror -Wextra -pedantic -g -DDEBUG
-CXXFLAGS=-O3 -Wall -Werror -Wextra -pedantic -DDEBUG
-#LDFLAGS=-g -Wall -Werror -Wextra -pedantic
-LDFLAGS=-O3 -Wall -Werror -Wextra -pedantic
+CFLAGS=-O2 -Wall -Werror -Wextra -pedantic
+LDFLAGS=-O2 -Wall -Werror -Wextra -pedantic
 
-.PHONY: default clean again
+OUT=bin/malice
+IDIR=inc
+ODIR=obj
+SDIR=src
 
-default: malice
+_OBJS = main.o
+OBJS = $(patsubst %,$(ODIR)/%,$(_OBJS))
 
-main.o: main.cpp
+debug: CXX += -DDEBUG -g
+debug: $(OUT)
 
-malice: main.o
-	$(CXX) $(LDFLAGS) -o $@ $^
+$(ODIR)/%.o: $(SDIR)/%.cpp 
+	$(CXX) -c $(INC) -o $@ $< $(CFLAGS) 
+
+$(OUT): $(OBJS)
+	$(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
+	strip $(OUT)
 
 clean:
-	rm -f main.o
-	rm -f malice
-
-again: clean default
+	rm -f $(ODIR)/*.o $(OUT)
