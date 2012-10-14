@@ -1,4 +1,4 @@
-malice
+MAlice
 ======
 
 MAlice compiler in C++
