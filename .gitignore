@@ -11,7 +11,10 @@
 *.la
 *.a
 
-#General rubbish
+# Executable
+bin/malice
+
+# General rubbish
 .*
 !.git*
 
