@@ -90,44 +90,108 @@ LatexCommand tableofcontents
 
 \end_layout
 
-\begin_layout Part
-Nothing
+\begin_layout Section
+Keywords
 \end_layout
 
-\begin_layout Section
-To
+\begin_layout Standard
+There are several keywords that can't be used as identifiers in MAlice programs.
 \end_layout
 
 \begin_layout Subsection
-See
+Delimiters
+\end_layout
+
+\begin_layout Standard
+Valid delimiters between statements are 
+\emph on
+
+\begin_inset Formula $,$
+\end_inset
+
+ 
+\emph default
+|
+\emph on
+ .
+ 
+\emph default
+|
+\emph on
+ and 
+\emph default
+|
+\emph on
+ but 
+\emph default
+|
+\emph on
+ then
+\emph default
+.
+ They can be used both in line and at the end of the line.
+\end_layout
+
+\begin_layout Subsection
+Functions
+\end_layout
+
+\begin_layout Standard
+A function always starts with the keyword 
+\begin_inset Formula $opened$
+\end_inset
+
+ and ends with 
+\emph on
+
+\begin_inset Formula $closed$
+\end_inset
+
+.
+ 
+\emph default
+It consists of a list of statements separated by delimiters.
+\end_layout
+
+\begin_layout Section
+Types
+\end_layout
+
+\begin_layout Standard
+There are two types in MAlice, 
+\begin_inset Formula $Integer$
+\end_inset
+
+ and 
+\begin_inset Formula $Letter$
+\end_inset
+
+.
+ Implicit casts between these types are not supported.
+\end_layout
+
+\begin_layout Section
+Grammar
+\end_layout
+
+\begin_layout Section
+Semantics
+\end_layout
+
+\begin_layout Subsection
+Run-time errors
 \end_layout
 
 \begin_layout Subsubsection
-Here
-\end_layout
-
-\begin_layout Part
-To
-\end_layout
-
-\begin_layout Section
-See
+Division by zero
 \end_layout
 
 \begin_layout Subsection
-Here
+Compile-time errors
 \end_layout
 
-\begin_layout Part
-See
-\end_layout
-
-\begin_layout Section
-Here
-\end_layout
-
-\begin_layout Part
-Here
+\begin_layout Subsubsection
+Double declaration
 \end_layout
 
 \end_body
