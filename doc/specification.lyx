@@ -174,6 +174,121 @@ There are two types in MAlice,
 Grammar
 \end_layout
 
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+<program>            ::= <statement> <statement-list>
+\end_layout
+
+\begin_layout Plain Layout
+
+<statement>          ::= <declaration> | <assignment> | <unary>
+\end_layout
+
+\begin_layout Plain Layout
+
+<expression>         ::= <literal> |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         <expression> <binOp> <expression> <separator>
+\end_layout
+
+\begin_layout Plain Layout
+
+<binOp>              ::= '+' |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         '-' |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         '*' |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         '/' |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         '%' |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         '|' |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         '&' |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         '^'
+\end_layout
+
+\begin_layout Plain Layout
+
+<literal>            ::= <id> | <const> | <char>
+\end_layout
+
+\begin_layout Plain Layout
+
+<unary>              ::= <id> 'ate' <separator> |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         <id> 'drank' <separator> |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         <expression> 'said Alice' <separator>
+\end_layout
+
+\begin_layout Plain Layout
+
+<declaration>        ::= <id> 'was a' <type> <separator> |
+\end_layout
+
+\begin_layout Plain Layout
+
+                         <id> 'was a' <type> 'too' <separator>
+\end_layout
+
+\begin_layout Plain Layout
+
+<assignment>         ::= <id> 'became' <expression> <separator>
+\end_layout
+
+\begin_layout Plain Layout
+
+<separator>          ::= ',' | '.' | 'and' | 'but' | 'then'
+\end_layout
+
+\begin_layout Plain Layout
+
+<type>               ::= 'number' | 'letter'
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Semantics
 \end_layout
@@ -186,12 +301,33 @@ Run-time errors
 Division by zero
 \end_layout
 
+\begin_layout Standard
+Division by zero is not a valid operation, and thus the program behaviour
+ after dividing by zero is undefined.
+\end_layout
+
 \begin_layout Subsection
 Compile-time errors
 \end_layout
 
 \begin_layout Subsubsection
 Double declaration
+\end_layout
+
+\begin_layout Standard
+A variable must not be declared twice in the same scope, and doing so leads
+ to a compile-time error.
+\end_layout
+
+\begin_layout Subsubsection
+Type errors
+\end_layout
+
+\begin_layout Standard
+Assignment statements and certain unary operators only work on correct,
+ matching types.
+ Using them with other types leads to an error, as implicit type casting
+ is not supported.
 \end_layout
 
 \end_body
