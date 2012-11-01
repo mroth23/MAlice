@@ -95,7 +95,27 @@ Keywords
 \end_layout
 
 \begin_layout Standard
-There are several keywords that can't be used as identifiers in MAlice programs.
+There are several keywords that can't be used as identifiers in MAlice programs:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+a | Alice | and | ate | became | but | closed | drank | letter |
+\end_layout
+
+\begin_layout Plain Layout
+
+number | opened | said | then | too | was.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection
@@ -159,7 +179,7 @@ Types
 
 \begin_layout Standard
 There are two types in MAlice, 
-\begin_inset Formula $Integer$
+\begin_inset Formula $Number$
 \end_inset
 
  and 
