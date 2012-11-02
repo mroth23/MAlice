@@ -201,12 +201,19 @@ status open
 
 \begin_layout Plain Layout
 
-<program>            ::= <statement> <statement-list>
+<program>            ::= 'The looking-glass hatta()' 'opened' <statement-list>
+ 'closed'
 \end_layout
 
 \begin_layout Plain Layout
 
 <statement>          ::= <declaration> | <assignment> | <unary>
+\end_layout
+
+\begin_layout Plain Layout
+
+<statement-list>     ::= <statement> <separator> <statement-list> | <statement>
+ '.'
 \end_layout
 
 \begin_layout Plain Layout
@@ -266,32 +273,37 @@ status open
 
 \begin_layout Plain Layout
 
-<unary>              ::= <id> 'ate' <separator> |
+<unary>              ::= <id> 'ate' |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         <id> 'drank' <separator> |
+                         <id> 'drank' |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         <expression> 'said Alice' <separator>
+                         <expression> 'said Alice' |
 \end_layout
 
 \begin_layout Plain Layout
 
-<declaration>        ::= <id> 'was a' <type> <separator> |
+                         '~' <id>
 \end_layout
 
 \begin_layout Plain Layout
 
-                         <id> 'was a' <type> 'too' <separator>
+<declaration>        ::= <id> 'was a' <type> |
 \end_layout
 
 \begin_layout Plain Layout
 
-<assignment>         ::= <id> 'became' <expression> <separator>
+                         <id> 'was a' <type> 'too'
+\end_layout
+
+\begin_layout Plain Layout
+
+<assignment>         ::= <id> 'became' <expression>
 \end_layout
 
 \begin_layout Plain Layout
