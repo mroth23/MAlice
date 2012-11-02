@@ -338,6 +338,15 @@ Division by zero is not a valid operation, and thus the program behaviour
  after dividing by zero is undefined.
 \end_layout
 
+\begin_layout Subsubsection
+Uninitialised variables
+\end_layout
+
+\begin_layout Standard
+Operators only work on initialised variables, and throw a runtime error
+ otherwise.
+\end_layout
+
 \begin_layout Subsection
 Compile-time errors
 \end_layout
