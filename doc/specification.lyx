@@ -173,6 +173,320 @@ A function always starts with the keyword
 It consists of a list of statements separated by delimiters.
 \end_layout
 
+\begin_layout Subsection
+Predefined Functions
+\end_layout
+
+\begin_layout Standard
+There are several predefined functions in the Alice language.
+ 
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+ate
+\emph default
+ - increments a value.
+ E.g.
+ 
+\emph on
+banana ate
+\emph default
+ 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ banana--;
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+became - 
+\emph default
+assigngs a value to a literal.
+ E.g.
+ 
+\emph on
+apple became 6 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ 
+\emph default
+apple = 6;
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+drank 
+\emph default
+- decrements a value.
+ E.g.
+ 
+\emph on
+orange drank
+\emph default
+ 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ orange--;
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+said Alice
+\emph default
+ - outputs a value to standard output.
+ E.g.
+ 
+\emph on
+pineapple said Alice
+\emph default
+ 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ cout << pineapple;
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+was a 
+\emph default
+- defines a variable to a set type.
+ E.g.
+ 
+\emph on
+lemon was a number
+\emph default
+ 
+\begin_inset Formula $\rightarrow$
+\end_inset
+
+ int lemon; 
+\end_layout
+
+\begin_layout Subsection
+Operators
+\end_layout
+
+\begin_layout Standard
+Operators mean the same as in other programming languages.
+ Operators are only valid on numbers and literals that are of the type 
+\begin_inset Formula $Number$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+\begin_inset Formula $+$
+\end_inset
+
+
+\emph default
+ - Addition of two numbers.
+ E.g.
+ 
+\begin_inset Formula $30+12=42$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $-$
+\end_inset
+
+ - Subtraction of two numbers.
+ E.g.
+ 
+\begin_inset Formula $50-8=42$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+\begin_inset Formula $*$
+\end_inset
+
+
+\emph default
+ - Multiplication of two numbers.
+ E.g.
+ 
+\begin_inset Formula $21*2=42$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $/$
+\end_inset
+
+ - Divison of two numbers.
+ E.g.
+ 
+\begin_inset Formula $126/3=42$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\%$
+\end_inset
+
+ - Modulus operator.
+ E.g.
+ 
+\begin_inset Formula $1\%42=42$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $|$
+\end_inset
+
+ - Bitwise OR.
+ E.g.
+ 
+\begin_inset Formula $101000|001010=101010$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\&$
+\end_inset
+
+ - Bitwise AND E.g.
+ 
+\begin_inset Formula $101110\&101010=101010$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\sim$
+\end_inset
+
+ - Bitwise NOT E.g.
+ 
+\begin_inset Formula $\sim010101=101010$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $ $
+\end_inset
+
+
+\begin_inset Formula $ $
+\end_inset
+
+
+\begin_inset Formula $\mathcircumflex$
+\end_inset
+
+ - Bitwise XOR.
+ E.g.
+ 
+\begin_inset Formula $110010\mathcircumflex01100=101010$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+1.5 Operator Precedence
+\end_layout
+
+\begin_layout Standard
+The order of operator precedence:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\sim$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\&$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\mathcircumflex$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $|$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\%$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $/$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $*$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Types
 \end_layout
