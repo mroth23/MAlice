@@ -569,6 +569,10 @@ There are two types in MAlice,
 \end_inset
 
  8 bit unsiged
+\begin_inset Newpage pagebreak
+\end_inset
+
+
 \end_layout
 
 \begin_layout Section
@@ -582,7 +586,6 @@ BNF rules
 \begin_layout Standard
 The context-free grammar for MAlice is expressed in Backus-Naur Form as
  follows.
- 
 \end_layout
 
 \begin_layout Standard
@@ -796,7 +799,7 @@ Any code that can't be parsed will cause a compile-time error.
 status open
 
 \begin_layout Plain Layout
-I.e.
+E.g.
  inserting missing brackets
 \end_layout
 
