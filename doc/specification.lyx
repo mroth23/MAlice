@@ -635,6 +635,22 @@ status open
 
 \end_layout
 
+\begin_layout Subsection
+Regex for Literals
+\end_layout
+
+\begin_layout Itemize
+<id>: [a-zA-Z]+[a-zA-Z0-9]*
+\end_layout
+
+\begin_layout Itemize
+<const>: -?[0-9]+
+\end_layout
+
+\begin_layout Itemize
+<char>: [a-zA-Z]+
+\end_layout
+
 \begin_layout Section
 Semantics
 \end_layout
