@@ -206,7 +206,7 @@ status open
 
 \begin_layout Plain Layout
 
-banana ate → banana++;
+banana ate -> banana++;
 \end_layout
 
 \end_inset
@@ -232,7 +232,7 @@ status open
 
 \begin_layout Plain Layout
 
-apple became 6 → apple = 6;
+apple became 6 -> apple = 6;
 \end_layout
 
 \end_inset
@@ -262,7 +262,7 @@ status open
 
 \begin_layout Plain Layout
 
-orange drank → orange--;
+orange drank -> orange--;
 \end_layout
 
 \end_inset
@@ -292,7 +292,7 @@ status open
 
 \begin_layout Plain Layout
 
-pineapple said Alice → cout << pineapple;
+pineapple said Alice -> cout << pineapple;
 \end_layout
 
 \end_inset
@@ -311,7 +311,7 @@ was
 a 
 \emph default
 defines a variable to a set type.
- Valid on both type.
+ Valid on both types.
  E.g.
  
 \emph on
@@ -322,7 +322,7 @@ status open
 
 \begin_layout Plain Layout
 
-lemon was a number → int lemon;
+lemon was a number -> int lemon;
 \end_layout
 
 \end_inset
