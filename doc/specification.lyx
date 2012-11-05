@@ -529,7 +529,7 @@ There are two types in MAlice,
 \begin_inset Formula $Letter$
 \end_inset
 
- 8 bit
+ 8 bit unsiged
 \end_layout
 
 \begin_layout Section
@@ -769,8 +769,8 @@ Invalid use of keywords
 \end_layout
 
 \begin_layout Standard
-Keywords are reserved by the language and can't be used as identifiers or
- type 
+Keywords are reserved by the language and can't be used as identifiers.
+ Doing so will result in a compile-time error.
 \end_layout
 
 \end_body
