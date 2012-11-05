@@ -95,6 +95,10 @@ LatexCommand tableofcontents
 Keywords
 \end_layout
 
+\begin_layout Subsection
+Reserved keywords
+\end_layout
+
 \begin_layout Standard
 There are several keywords that can't be used as identifiers in MAlice programs:
 \end_layout
@@ -183,12 +187,13 @@ There are several predefined functions in the Alice language.
  
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 
 \emph on
 ate
 \emph default
- - increments a value.
+ increments a value.
  Only valid on literals with the type 
 \begin_inset Formula $Number$
 \end_inset
@@ -206,10 +211,11 @@ banana ate
  banana--;
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 
 \emph on
-became - 
+became 
 \emph default
 assigngs a value to a literal.
  Valid on both types.
@@ -225,12 +231,13 @@ apple became 6
 apple = 6;
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 
 \emph on
 drank 
 \emph default
-- decrements a value.
+decrements a value.
  Only valid on literals with they type 
 \begin_inset Formula $Number$
 \end_inset
@@ -248,12 +255,17 @@ orange drank
  orange--;
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 
 \emph on
-said Alice
+said
+\begin_inset space ~
+\end_inset
+
+Alice
 \emph default
- - outputs a value to standard output.
+ outputs a value to standard output.
  Valid on both types.
  E.g.
  
@@ -267,12 +279,17 @@ pineapple said Alice
  cout << pineapple;
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 
 \emph on
-was a 
+was
+\begin_inset space ~
+\end_inset
+
+a 
 \emph default
-- defines a variable to a set type.
+defines a variable to a set type.
  Valid on both type.
  E.g.
  
@@ -299,7 +316,8 @@ Operators mean the same as in other programming languages.
 .
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 
 \emph on
 \begin_inset Formula $+$
@@ -307,7 +325,7 @@ Operators mean the same as in other programming languages.
 
 
 \emph default
- - Addition of two numbers.
+ Addition of two numbers.
  E.g.
  
 \begin_inset Formula $30+12=42$
@@ -316,11 +334,12 @@ Operators mean the same as in other programming languages.
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $-$
 \end_inset
 
- - Subtraction of two numbers.
+ Subtraction of two numbers.
  E.g.
  
 \begin_inset Formula $50-8=42$
@@ -329,7 +348,8 @@ Operators mean the same as in other programming languages.
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 
 \emph on
 \begin_inset Formula $*$
@@ -337,7 +357,7 @@ Operators mean the same as in other programming languages.
 
 
 \emph default
- - Multiplication of two numbers.
+ Multiplication of two numbers.
  E.g.
  
 \begin_inset Formula $21*2=42$
@@ -346,11 +366,12 @@ Operators mean the same as in other programming languages.
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $/$
 \end_inset
 
- - Divison of two numbers.
+ Divison of two numbers.
  E.g.
  
 \begin_inset Formula $126/3=42$
@@ -359,11 +380,12 @@ Operators mean the same as in other programming languages.
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $\%$
 \end_inset
 
- - Modulus operator.
+ Modulus operator.
  E.g.
  
 \begin_inset Formula $1\%42=42$
@@ -372,11 +394,12 @@ Operators mean the same as in other programming languages.
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $|$
 \end_inset
 
- - Bitwise OR.
+ Bitwise OR.
  E.g.
  
 \begin_inset Formula $101000|001010=101010$
@@ -385,11 +408,12 @@ Operators mean the same as in other programming languages.
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $\&$
 \end_inset
 
- - Bitwise AND E.g.
+ Bitwise AND E.g.
  
 \begin_inset Formula $101110\&101010=101010$
 \end_inset
@@ -397,11 +421,12 @@ Operators mean the same as in other programming languages.
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $\sim$
 \end_inset
 
- - Bitwise NOT E.g.
+ Bitwise NOT E.g.
  
 \begin_inset Formula $\sim010101=101010$
 \end_inset
@@ -409,7 +434,8 @@ Operators mean the same as in other programming languages.
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $ $
 \end_inset
 
@@ -421,7 +447,7 @@ Operators mean the same as in other programming languages.
 \begin_inset Formula $\mathcircumflex$
 \end_inset
 
- - Bitwise XOR.
+ Bitwise XOR.
  E.g.
  
 \begin_inset Formula $110010\mathcircumflex01100=101010$
@@ -438,63 +464,72 @@ Operators mean the same as in other programming languages.
 The order of operator precedence:
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $\sim$
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $\&$
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $\mathcircumflex$
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $|$
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $\%$
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $/$
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $*$
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $+$
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
 \begin_inset Formula $-$
 \end_inset
 
@@ -503,6 +538,10 @@ The order of operator precedence:
 
 \begin_layout Section
 Types
+\end_layout
+
+\begin_layout Subsection
+Primitive types
 \end_layout
 
 \begin_layout Standard
@@ -534,6 +573,10 @@ There are two types in MAlice,
 
 \begin_layout Section
 Grammar
+\end_layout
+
+\begin_layout Subsection
+BNF rules
 \end_layout
 
 \begin_layout Standard
@@ -690,7 +733,7 @@ Regex for Literals
 \end_layout
 
 \begin_layout Itemize
-<char>: [a-zA-Z]+
+<char>: [a-zA-Z]
 \end_layout
 
 \begin_layout Section
@@ -769,7 +812,8 @@ Invalid use of keywords
 \end_layout
 
 \begin_layout Standard
-Keywords are reserved by the language and can't be used as identifiers.
+The keywords from section 1 are reserved by the language and can't be used
+ as identifiers.
  Doing so will result in a compile-time error.
 \end_layout
 
