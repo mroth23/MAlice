@@ -200,15 +200,18 @@ ate
 
 .
  E.g.
- 
-\emph on
-banana ate
-\emph default
- 
-\begin_inset Formula $\rightarrow$
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+banana ate → banana++;
+\end_layout
+
 \end_inset
 
- banana--;
+
 \end_layout
 
 \begin_layout Labeling
@@ -217,18 +220,24 @@ banana ate
 \emph on
 became 
 \emph default
-assigngs a value to a literal.
+assigns a value to a literal.
  Valid on both types.
  E.g.
  
 \emph on
-apple became 6 
-\begin_inset Formula $\rightarrow$
+
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+apple became 6 → apple = 6;
+\end_layout
+
 \end_inset
 
- 
-\emph default
-apple = 6;
+
 \end_layout
 
 \begin_layout Labeling
@@ -246,13 +255,19 @@ decrements a value.
  E.g.
  
 \emph on
-orange drank
-\emph default
- 
-\begin_inset Formula $\rightarrow$
+
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+orange drank → orange--;
+\end_layout
+
 \end_inset
 
- orange--;
+
 \end_layout
 
 \begin_layout Labeling
@@ -270,13 +285,19 @@ Alice
  E.g.
  
 \emph on
-pineapple said Alice
-\emph default
- 
-\begin_inset Formula $\rightarrow$
+
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+pineapple said Alice → cout << pineapple;
+\end_layout
+
 \end_inset
 
- cout << pineapple;
+
 \end_layout
 
 \begin_layout Labeling
@@ -294,13 +315,21 @@ defines a variable to a set type.
  E.g.
  
 \emph on
-lemon was a number
-\emph default
- 
-\begin_inset Formula $\rightarrow$
+
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+lemon was a number → int lemon;
+\end_layout
+
 \end_inset
 
- int lemon; 
+
+\emph default
+ 
 \begin_inset Newpage newpage
 \end_inset
 
@@ -565,14 +594,15 @@ There are two types in MAlice,
 \begin_inset Formula $Number$
 \end_inset
 
- 32 bit signed
+ - Signed integer with a size equivalent to the platform word size (usually
+ 32 or 64 bits).
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $Letter$
 \end_inset
 
- 8 bit unsiged
+ - 8 bit unsigned representation of an ASCII character.
 \begin_inset Newpage pagebreak
 \end_inset
 
