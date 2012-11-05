@@ -25,9 +25,10 @@
 \bibtex_command default
 \index_command default
 \paperfontsize default
+\spacing single
 \use_hyperref false
-\papersize default
-\use_geometry false
+\papersize a4paper
+\use_geometry true
 \use_amsmath 1
 \use_esint 1
 \use_mhchem 1
@@ -509,125 +510,139 @@ Grammar
 \end_layout
 
 \begin_layout Standard
+The context-free grammar for MAlice is expressed in Backus-Naur Form as
+ follows.
+ 
+\end_layout
+
+\begin_layout Standard
 \begin_inset listings
 inline false
 status open
 
 \begin_layout Plain Layout
 
-<program>            ::= 'The looking-glass hatta()' 'opened' <statement-list>
- 'closed'
+<program>        ::= 'The looking-glass hatta()' 'opened'
 \end_layout
 
 \begin_layout Plain Layout
 
-<statement>          ::= <declaration> | <assignment> | <unary>
+                     <statement-list> 'closed'
 \end_layout
 
 \begin_layout Plain Layout
 
-<statement-list>     ::= <statement> <separator> <statement-list> | <statement>
- '.'
+<statement>      ::= <declaration> | <assignment> | <unary>
 \end_layout
 
 \begin_layout Plain Layout
 
-<expression>         ::= <literal> |
+<statement-list> ::= <statement> <separator> <statement-list> |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         <expression> <binOp> <expression> <separator>
+                     <statement> '.'
 \end_layout
 
 \begin_layout Plain Layout
 
-<binOp>              ::= '+' |
+<expression>     ::= <literal> |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         '-' |
+                     <expression> <binOp> <expression> <separator>
 \end_layout
 
 \begin_layout Plain Layout
 
-                         '*' |
+<binOp>          ::= '+' |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         '/' |
+                     '-' |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         '%' |
+                     '*' |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         '|' |
+                     '/' |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         '&' |
+                     '%' |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         '^'
+                     '|' |
 \end_layout
 
 \begin_layout Plain Layout
 
-<literal>            ::= <id> | <const> | <char>
+                     '&' |
 \end_layout
 
 \begin_layout Plain Layout
 
-<unary>              ::= <id> 'ate' |
+                     '^'
 \end_layout
 
 \begin_layout Plain Layout
 
-                         <id> 'drank' |
+<literal>        ::= <id> | <const> | <char>
 \end_layout
 
 \begin_layout Plain Layout
 
-                         <expression> 'said Alice' |
+<unary>          ::= <id> 'ate' |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         '~' <id>
+                     <id> 'drank' |
 \end_layout
 
 \begin_layout Plain Layout
 
-<declaration>        ::= <id> 'was a' <type> |
+                     <expression> 'said Alice' |
 \end_layout
 
 \begin_layout Plain Layout
 
-                         <id> 'was a' <type> 'too'
+                     '~' <id>
 \end_layout
 
 \begin_layout Plain Layout
 
-<assignment>         ::= <id> 'became' <expression>
+<declaration>    ::= <id> 'was a' <type> |
 \end_layout
 
 \begin_layout Plain Layout
 
-<separator>          ::= ',' | '.' | 'and' | 'but' | 'then'
+                     <id> 'was a' <type> 'too'
 \end_layout
 
 \begin_layout Plain Layout
 
-<type>               ::= 'number' | 'letter'
+<assignment>     ::= <id> 'became' <expression>
+\end_layout
+
+\begin_layout Plain Layout
+
+<separator>      ::= ',' | '.' | 'and' | 'but' | 'then'
+\end_layout
+
+\begin_layout Plain Layout
+
+<type>           ::= 'number' | 'letter'
 \end_layout
 
 \end_inset
@@ -644,12 +659,11 @@ Run-time errors
 \end_layout
 
 \begin_layout Subsubsection
-Division by zero
+Division or modulo by zero
 \end_layout
 
 \begin_layout Standard
-Division by zero is not a valid operation, and thus the program behaviour
- after dividing by zero is undefined.
+These are not valid operations, and throw a run-time error if attempted.
 \end_layout
 
 \begin_layout Subsubsection
@@ -683,6 +697,37 @@ Assignment statements and certain unary operators only work on correct,
  matching types.
  Using them with other types leads to an error, as implicit type casting
  is not supported.
+\end_layout
+
+\begin_layout Subsubsection
+Syntax errors
+\end_layout
+
+\begin_layout Standard
+Any code that can't be parsed will cause a compile-time error.
+ No attempts at fixing the invalid code
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+I.e.
+ inserting missing brackets
+\end_layout
+
+\end_inset
+
+ will be made, although further parsing by skipping tokens until a synchronizati
+on point, such as the end of a function, will be tried.
+ This is so multiple compiler errors can be reported per compile.
+\end_layout
+
+\begin_layout Subsubsection
+Invalid use of keywords
+\end_layout
+
+\begin_layout Standard
+Keywords are reserved by the language and can't be used as identifiers or
+ type 
 \end_layout
 
 \end_body
