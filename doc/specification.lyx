@@ -188,6 +188,11 @@ There are several predefined functions in the Alice language.
 ate
 \emph default
  - increments a value.
+ Only valid on literals with the type 
+\begin_inset Formula $Number$
+\end_inset
+
+.
  E.g.
  
 \emph on
@@ -206,6 +211,7 @@ banana ate
 became - 
 \emph default
 assigngs a value to a literal.
+ Valid on both types.
  E.g.
  
 \emph on
@@ -224,6 +230,11 @@ apple = 6;
 drank 
 \emph default
 - decrements a value.
+ Only valid on literals with they type 
+\begin_inset Formula $Number$
+\end_inset
+
+.
  E.g.
  
 \emph on
@@ -242,6 +253,7 @@ orange drank
 said Alice
 \emph default
  - outputs a value to standard output.
+ Valid on both types.
  E.g.
  
 \emph on
@@ -260,6 +272,7 @@ pineapple said Alice
 was a 
 \emph default
 - defines a variable to a set type.
+ Valid on both type.
  E.g.
  
 \emph on
@@ -502,6 +515,20 @@ There are two types in MAlice,
 
 .
  Implicit casts between these types are not supported.
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $Number$
+\end_inset
+
+ 32 bit signed
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $Letter$
+\end_inset
+
+ 8 bit
 \end_layout
 
 \begin_layout Section
