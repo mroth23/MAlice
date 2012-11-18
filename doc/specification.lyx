@@ -110,12 +110,27 @@ status open
 
 \begin_layout Plain Layout
 
-a | Alice | and | ate | became | but | closed | drank | letter |
+a | Alice | and | ate | became | because | but | closed | contained |
 \end_layout
 
 \begin_layout Plain Layout
 
-number | opened | said | then | too | was
+drank | either | enough | eventually | found | glass | had | letter |
+\end_layout
+
+\begin_layout Plain Layout
+
+looking | maybe | number | of | or | opened | perhaps | piece |
+\end_layout
+
+\begin_layout Plain Layout
+
+room | s | said | sentence | so | spider | spoke | The | then |
+\end_layout
+
+\begin_layout Plain Layout
+
+times | too | unsure | was | what | which
 \end_layout
 
 \end_inset
@@ -206,7 +221,7 @@ status open
 
 \begin_layout Plain Layout
 
-banana ate → banana++;
+banana ate -> banana++;
 \end_layout
 
 \end_inset
@@ -232,7 +247,7 @@ status open
 
 \begin_layout Plain Layout
 
-apple became 6 → apple = 6;
+apple became 6 -> apple = 6;
 \end_layout
 
 \end_inset
@@ -262,7 +277,7 @@ status open
 
 \begin_layout Plain Layout
 
-orange drank → orange--;
+orange drank -> orange--;
 \end_layout
 
 \end_inset
@@ -292,7 +307,7 @@ status open
 
 \begin_layout Plain Layout
 
-pineapple said Alice → cout << pineapple;
+pineapple said Alice -> cout << pineapple;
 \end_layout
 
 \end_inset
@@ -311,7 +326,7 @@ was
 a 
 \emph default
 defines a variable to a set type.
- Valid on both type.
+ Valid on both types.
  E.g.
  
 \emph on
@@ -322,7 +337,7 @@ status open
 
 \begin_layout Plain Layout
 
-lemon was a number → int lemon;
+lemon was a number -> int lemon;
 \end_layout
 
 \end_inset
