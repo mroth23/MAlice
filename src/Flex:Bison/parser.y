@@ -1,29 +1,31 @@
 %{
-	#include "ast2.h"
-	extern int yylex();
-	void yyerror(const char *s) { printf("Error\n");  }
-	Declerations *programStart;
+#include "ast2.h"
+extern int yylex();
+void yyerror(const char *s) { }
+Declerations *programStart;
 %}
-
+%code requires {
+#include "ast2.h"
+}
 %union {
-	Declerations *decls;
-	Decleration *decl;
-	VarDecl *varDecl;
-	FuncDecl *funcDecl;
-	ProcDecl *procDecl;
-	FormalParams *formalParams;
-	FormalParam *formalParam;
-	Body *body;
-	Statement *stmt;
-	Expression *expr;
-	CondStmt *condStmt;
-	ActualParams *actualParams;
-	std::vector<Decleration*> *decList;
-	std::vector<FormalParam*> *formalParamList;
-	std::vector<Statement*> *statList;
-	std::vector<Expression*> *exprList;
-	std::string *string;
-	int token;
+     VarDecl *varDecl;
+     FuncDecl *funcDecl;
+     ProcDecl *procDecl;
+     Declerations *decls;
+     Decleration *decl;
+     FormalParams *formalParams;
+     FormalParam *formalParam;
+     Body *body;
+     Statement *stmt;
+     Expression *expr;
+     CondStmt *condStmt;
+     ActualParams *actualParams;
+     std::vector<Decleration*> *decList;
+     std::vector<FormalParam*> *formalParamList;
+     std::vector<Statement*> *statList;
+     std::vector<Expression*> *exprList;
+     std::string *string;
+     int token;
 }
 
 %token <token> A AND ALICE ATE BECAME BECAUSE BUT CLOSED CONTAINED DRANK
