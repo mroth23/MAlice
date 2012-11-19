@@ -13,7 +13,8 @@ class FormalParam;
 class Body;
 class Statement;
 class Expression;
-
+class CondStmt;
+class ActualParams;
 
 
 class Declerations {

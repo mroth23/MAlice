@@ -1,9 +1,8 @@
 %{
 	#include "parser.hpp"
-	#include "header.hpp"
 	#include <string>
 	#include <vector>
-	#include <stdio.h>
+	#include "ast2.h"
 	using namespace std;
 	class Token {
 		public:
