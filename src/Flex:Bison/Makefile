@@ -1,5 +1,5 @@
 Parser: main.cpp lexer.cpp parser.cpp
-	g++ -o Parser main.cpp lexer.cpp parser.cpp ast2.h
+	g++ -Wall -pedantic -o Parser main.cpp lexer.cpp parser.cpp ast2.h
 
 parser.cpp: parser.y
 	bison -d -o parser.cpp parser.y
