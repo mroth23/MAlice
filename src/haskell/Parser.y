@@ -1,5 +1,5 @@
 {
-module Main where
+module Parser where
 import Scanner
 }
 
@@ -207,21 +207,11 @@ parseError ((L pos t):ls) = error $ "Parse error at (" ++ showPosn pos ++ "):\n"
 
 data Program =
   CompilationUnit Decls
-  deriving (Eq)
-
-instance Show Program where
-  show (CompilationUnit decls) =
-    show decls
+  deriving (Eq, Show)
 
 data Decls =
   Decls Decls Decl | SingleDecl Decl
-  deriving (Eq)
-
-instance Show Decls where
-  show (Decls decls decl) =
-    show decl ++ show decls
-  show (SingleDecl decl) =
-    show decl
+  deriving (Eq, Show)
 
 data Decl =
   VarDecl Type Ident |
@@ -229,70 +219,27 @@ data Decl =
   VArrayDecl Type Ident Expr |
   FuncDecl Ident FormalParams Type Body |
   ProcDecl Ident FormalParams Body
-  deriving (Eq)
-
-instance Show Decl where
-  show (VarDecl vtype ident) =
-    show vtype ++ " " ++ ident ++ ";\n"
-  show (VAssignDecl vtype ident expr) =
-    show vtype ++ " " ++ ident ++ " = " ++ show expr ++ ";\n"
-  show (VArrayDecl atype ident expr) =
-    show atype ++ "[" ++ show expr ++ "] " ++ show ident ++ ";\n"
-  show (FuncDecl ident params ftype body) =
-    show ftype ++ " " ++ ident ++ "(" ++ show params ++ ") {\n" ++
-    show body ++ "\n}"
-  show (ProcDecl ident params body) =
-    "void " ++ ident ++ "(" ++ show params ++ ") {\n" ++ show body ++ "}\n"
+  deriving (Eq, Show)
 
 data FormalParams =
   FVoidParam | FPList FormalParamsList
-  deriving (Eq)
-
-instance Show FormalParams where
-  show (FVoidParam) =
-    "void"
-  show (FPList fplist) =
-    show fplist
+  deriving (Eq, Show)
 
 data FormalParamsList =
   FormalParamsList FormalParamsList FormalParam | SingleParam FormalParam
-  deriving (Eq)
-
-instance Show FormalParamsList where
-  show (SingleParam fp) =
-    show fp
-  show (FormalParamsList fplist fp) =
-    show fp ++ ", " ++ show fplist
+  deriving (Eq, Show)
 
 data FormalParam =
   Param Type Ident
-  deriving (Eq)
-
-instance Show FormalParam where
-  show (Param ptype ident) =
-    show ptype ++ " " ++ ident
+  deriving (Eq, Show)
 
 data Body =
   DeclBody Decls CompoundStmt | StmtBody CompoundStmt | EmptyBody
-  deriving (Eq)
-
-instance Show Body where
-  show (DeclBody decls cstmt) =
-    show decls ++ show cstmt
-  show (StmtBody cstmt) =
-    show cstmt
-  show EmptyBody =
-    ""
+  deriving (Eq, Show)
 
 data CompoundStmt =
   CompoundStmt CompoundStmt Stmt | SingleStmt Stmt
-  deriving (Eq)
-
-instance Show CompoundStmt where
-  show (CompoundStmt cstmt stmt) =
-    show cstmt ++ show stmt
-  show (SingleStmt stmt) =
-    show stmt
+  deriving (Eq, Show)
 
 data Stmt =
   SBody Body |
@@ -308,58 +255,16 @@ data Stmt =
   SIf Expr CompoundStmt CompoundStmt |
   SEndC ConditionalStmt |
   SCond ConditionalStmt CompoundStmt
-  deriving (Eq)
-
-instance Show Stmt where
-  show (SBody b) =
-    show b
-  show (SNull) =
-    ""
-  show (SAssign expr1 expr2) =
-    show expr1 ++ " = " ++ show expr2 ++ ";\n"
-  show (SInc expr) =
-    show expr ++ "++;\n"
-  show (SDec expr) =
-    show expr ++ "--;\n"
-  show (SReturn expr) =
-    "return " ++ show expr ++ ";\n"
-  show (SPrint expr) =
-    "cout >> " ++ show expr ++ ";\n"
-  show (SInput expr) =
-    "cin << " ++ show expr ++ ";\n"
-  show (SCall ident params) =
-    ident ++ "(" ++ show params ++ ");\n"
-  show (SLoop expr cstmt) =
-    "while(" ++ show expr ++ ") {\n" ++
-    show cstmt ++ "}\n"
-  show (SIf expr c1 c2) =
-    "if (" ++ show expr ++ ") {\n" ++ show c1 ++ "} else {\n" ++
-    show c2 ++ "}\n"
-  show (SEndC cond) =
-    show cond
-  show (SCond cond cstmt) =
-    show cond ++ show cstmt
+  deriving (Eq, Show)
 
 data ConditionalStmt =
   CPerhaps Expr CompoundStmt |
   COrMaybe ConditionalStmt Expr CompoundStmt
-  deriving (Eq)
-
-instance Show ConditionalStmt where
-  show (CPerhaps expr cstmt) =
-    "if (" ++ show expr ++ ") {\n" ++ show cstmt ++ "}\n"
-  show (COrMaybe cond expr cstmt) =
-    show cond ++ "else if (" ++ show expr ++ ") {\n" ++ show cstmt ++ "}\n"
+  deriving (Eq, Show)
 
 data Type =
   Number | Letter | Sentence | RefType Type
-  deriving (Eq)
-
-instance Show Type where
-  show (Number) = "int"
-  show (Letter) = "char"
-  show (Sentence) = "string"
-  show (RefType reftype) = "*" ++ show reftype
+  deriving (Eq, Show)
 
 data Expr =
   EPlus Expr Expr |
@@ -389,62 +294,17 @@ data Expr =
   ECall Ident ActualParams |
   ENegate Expr |
   EPositive Expr
-  deriving (Eq)
+  deriving (Eq, Show)
 
-instance Show Expr where
-  show (EPlus e1 e2) = show e1 ++ " + " ++ show e2
-  show (EMinus e1 e2) = show e1 ++ " - " ++ show e2
-  show (EMult e1 e2) = show e1 ++ " * " ++ show e2
-  show (EDiv e1 e2) = show e1 ++ " / " ++ show e2
-  show (EMod e1 e2) = show e1 ++ " % " ++ show e2
-  show (EBAnd e1 e2) = show e1 ++ " & " ++ show e2
-  show (EBOr e1 e2) = show e1 ++ " | " ++ show e2
-  show (EBXor e1 e2) = show e1 ++ " ^ " ++ show e2
-  show (ELAnd e1 e2) = show e1 ++ " && " ++ show e2
-  show (ELOr e1 e2) = show e1 ++ "||" ++ show e2
-  show (EGT e1 e2) = show e1 ++ " > " ++ show e2
-  show (EGTE e1 e2) = show e1 ++ " >= " ++ show e2
-  show (EEq e1 e2) = show e1 ++ " == " ++ show e2
-  show (ELTE e1 e2) = show e1 ++ " <= " ++ show e2
-  show (ELT e1 e2) = show e1 ++ " < " ++ show e2
-  show (ENEq e1 e2) = show e1 ++ " != " ++ show e2
-  show (ENot e1) = "!" ++ show e1
-  show (EInv e1) = "~" ++ show e1
-  show (EId ident) = ident
-  show (EString str) = show str
-  show (EInt int) = show int
-  show (EChar c) = show c
-  show (EArrRef ident e1) = ident ++ "[" ++ show e1 ++ "]"
-  show (EBkt e1) = "(" ++ show e1 ++ ")"
-  show (ENegate e1) = "-(" ++ show e1 ++ ")"
-  show (EPositive e1) = "+(" ++ show e1 ++ ")"
-  show (ECall ident params) = ident ++ "(" ++ show params ++ ")"
 data ActualParams =
   ActualParams ActualParamsList | Void
-  deriving (Eq)
-
-instance Show ActualParams where
-  show (Void) = ""
-  show (ActualParams list) =
-    show list
+  deriving (Eq, Show)
 
 data ActualParamsList =
   ActualParamsList ActualParamsList Expr | SingleExpr Expr
-  deriving (Eq)
-
-instance Show ActualParamsList where
-  show (SingleExpr expr) =
-    show expr
-  show (ActualParamsList apl expr) =
-    show expr ++ "," ++ show apl
+  deriving (Eq, Show)
 
 type Ident = String
 type IntLiteral = Int
-
-main = do
-  inStr <- getContents
-  let parseTree = parser $ scanString inStr
-  putStrLn $ "parseTree: " ++ show parseTree
-  putStrLn $ "Done."
 
 }
