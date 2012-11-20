@@ -42,7 +42,7 @@
 	} 
 %}
 
-%option noyywrap
+%option noyywrap nounput
 
 A		a
 ALICE		Alice

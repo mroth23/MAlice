@@ -1,18 +1,19 @@
-%{
-#include "ast2.h"
+%code{
 extern int yylex();
 void yyerror(const char *s) { }
-Declerations *programStart;
-%}
+Declarations *maliceProgram;
+}
+
 %code requires {
 #include "ast2.h"
 }
+
 %union {
      VarDecl *varDecl;
      FuncDecl *funcDecl;
      ProcDecl *procDecl;
-     Declerations *decls;
-     Decleration *decl;
+     Declarations *decls;
+     Declaration *decl;
      FormalParams *formalParams;
      FormalParam *formalParam;
      Body *body;
@@ -20,7 +21,7 @@ Declerations *programStart;
      Expression *expr;
      CondStmt *condStmt;
      ActualParams *actualParams;
-     std::vector<Decleration*> *decList;
+     std::vector<Declaration*> *decList;
      std::vector<FormalParam*> *formalParamList;
      std::vector<Statement*> *statList;
      std::vector<Expression*> *exprList;
@@ -45,8 +46,6 @@ Declerations *programStart;
 %type <decls> program decls
 %type <expr> expr
 
-%start program
-
 %right in
 %left GREATER_THAN GREATER_EQUAL LESS_THAN LESS_EQUAL
 %left LOGICAL_OR
@@ -61,9 +60,11 @@ Declerations *programStart;
 %right LOGICAL_NOT BITWISE_NOT UMINUS UPLUS
 %right L_BRACKET
 
+%start program
+
 %%
 
-program 	: 	decls { }
+program 	: 	decls { maliceProgram = $1; }
 decls 		:	decls decl { } 
 			| decl { }
 decl		:	varDecl { } 
