@@ -1,48 +1,33 @@
 %{
-	#include "parser.hpp"
-	#include <string>
-	#include <vector>
-	#include "ast2.h"
-	using namespace std;
-	class Token {
-		public:
-			int token, line, character;
-			string extra;
-			Token (int _token, int _line, int _character) {
-				token     = _token;
-				line      = _line;
-				character = _character;
-			}
-			Token (int _token, int _line, int _character, string _extra) {
-				token     = _token;
-				line      = _line;
-				character = _character;
-				extra     = _extra;
-			}
-	};
-	int line = 1; 
-	int character = 1;
-	vector<Token*> tokens;
-	void newToken (int token) {
-		tokens.push_back(new Token(token, line, character));
-		/*cout << "Line: " << line << ", Character: " << character << ", Token: " << token
-		<< ", Token String: " << yytext  << endl;*/
-		character += yyleng;
-	}
-	void newToken (int token, string extra) {
-		tokens.push_back(new Token(token, line, character, extra));
-		character += yyleng;
-	}
-	void throwError () {
-		/*cout << "Lexical Error on line  " << line << " at character " << character
-		<< " trying to tokenise '" << yytext <<  "'." << endl;*/
-		printf("Lexical Error on line %i, character %i, trying to tokenise %s \n", line, character, yytext);
-		exit(1);
-		character += yyleng;
-	} 
+#include "parser.hpp"
+#include <string>
+#include <vector>
+#include "ast2.h"
+using namespace std;
+
+void newToken(int t) {
+     yylval->token = t;
+}
+
+void newToken(int t, std::string s) {
+     switch(t) {
+     case (STRING_LITERAL):
+          yylval->strlit = s;
+          break;
+     case (INT_LITERAL):
+          yylval->intlit = atoi(s);
+          break;
+     case (CHAR_LITERAL):
+          yylval->charlit = s[1];
+          break;
+     case (ID):
+          yylval->id = s;
+          break;
+     }
+}
 %}
 
-%option noyywrap nounput
+%option noyywrap nounput bison-bridge bison-locations
 
 A		a
 ALICE		Alice

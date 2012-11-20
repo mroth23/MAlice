@@ -1,12 +1,16 @@
+%skeleton "lalr1.cc"
+%defines
 %code{
-extern int yylex();
-void yyerror(const char *s) { }
+#define YYPARSE_PARAM scanner
+#define YYLEX_PARAM   scanner
 Declarations *maliceProgram;
 }
 
 %code requires {
 #include "ast2.h"
 }
+
+%locations
 
 %union {
      VarDecl *varDecl;
@@ -39,8 +43,10 @@ Declarations *maliceProgram;
 %token <token> L_A_BRACKET R_A_BRACKET Q_MARK LOGICAL_NOT BITWISE_OR BITWISE_AND
 %token <token> BITWISE_XOR BITWISE_NOT DIGIT
 %token <token> SPACE TAB NEWLINE ERROR STOP
-%token <string> ID STRING_LITERAL CHAR_LITERAL INT_LITERAL
-
+%token <strlit> STRING_LITERAL
+%token <charlit> CHAR_LITERAL
+%token <intlit> INT_LITERAL
+%token <id> ID
 
 %type <decl> decl varDecl funcDecl procDecl
 %type <decls> program decls
@@ -65,8 +71,8 @@ Declarations *maliceProgram;
 %%
 
 program 	: 	decls { maliceProgram = $1; }
-decls 		:	decls decl { } 
-			| decl { }
+decls 		:	decls decl { $1->decList.push_back($<decl>2) } 
+                        | decl { $$ = new Declarations(); $$->decList.push_back(); }
 decl		:	varDecl { } 
 			| funcDecl { }  
 			| procDecl { }
