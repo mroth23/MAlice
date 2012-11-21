@@ -1,18 +1,23 @@
-%{
-#include "ast2.h"
-extern int yylex();
-void yyerror(const char *s) { }
-Declerations *programStart;
-%}
+%skeleton "lalr1.cc"
+%defines
+%code{
+#define YYPARSE_PARAM scanner
+#define YYLEX_PARAM   scanner
+Declarations *maliceProgram;
+}
+
 %code requires {
 #include "ast2.h"
 }
+
+%locations
+
 %union {
      VarDecl *varDecl;
      FuncDecl *funcDecl;
      ProcDecl *procDecl;
-     Declerations *decls;
-     Decleration *decl;
+     Declarations *decls;
+     Declaration *decl;
      FormalParams *formalParams;
      FormalParam *formalParam;
      Body *body;
@@ -20,7 +25,7 @@ Declerations *programStart;
      Expression *expr;
      CondStmt *condStmt;
      ActualParams *actualParams;
-     std::vector<Decleration*> *decList;
+     std::vector<Declaration*> *decList;
      std::vector<FormalParam*> *formalParamList;
      std::vector<Statement*> *statList;
      std::vector<Expression*> *exprList;
@@ -38,14 +43,14 @@ Declerations *programStart;
 %token <token> L_A_BRACKET R_A_BRACKET Q_MARK LOGICAL_NOT BITWISE_OR BITWISE_AND
 %token <token> BITWISE_XOR BITWISE_NOT DIGIT
 %token <token> SPACE TAB NEWLINE ERROR STOP
-%token <string> ID STRING_LITERAL CHAR_LITERAL INT_LITERAL
-
+%token <strlit> STRING_LITERAL
+%token <charlit> CHAR_LITERAL
+%token <intlit> INT_LITERAL
+%token <id> ID
 
 %type <decl> decl varDecl funcDecl procDecl
 %type <decls> program decls
 %type <expr> expr
-
-%start program
 
 %right in
 %left GREATER_THAN GREATER_EQUAL LESS_THAN LESS_EQUAL
@@ -61,11 +66,13 @@ Declerations *programStart;
 %right LOGICAL_NOT BITWISE_NOT UMINUS UPLUS
 %right L_BRACKET
 
+%start program
+
 %%
 
-program 	: 	decls { }
-decls 		:	decls decl { } 
-			| decl { }
+program 	: 	decls { maliceProgram = $1; }
+decls 		:	decls decl { $1->decList.push_back($<decl>2) } 
+                        | decl { $$ = new Declarations(); $$->decList.push_back(); }
 decl		:	varDecl { } 
 			| funcDecl { }  
 			| procDecl { }

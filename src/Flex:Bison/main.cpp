@@ -1,3 +1,5 @@
+#include "ast2.h"
+
 extern int yyparse();
 
 using namespace std;
