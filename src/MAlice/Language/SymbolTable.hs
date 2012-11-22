@@ -11,10 +11,19 @@ data SymbolTableEntry = SymbolTableEntry
 type ArgTypes = [Type]
 
 lookupSymbol :: String -> SymbolTable -> SymbolTableEntry
-lookupSymbol = undefined
+lookupSymbol _ [] = error "Not In Table"
+lookupSymbol symbol (entry:rest)
+  | idString entry  == symbol = entry
+  | otherwise                 = lookupSymbol symbol rest
+  
 
 existsInTable :: String -> SymbolTable -> Bool
-existsInTable = undefined
+existsInTable symbol [] = False
+existsInTable symbol (entry:rest)
+  | idString entry == symbol = True
+  | otherwise                = existsInTable symbol rest
 
 addSymbol :: String -> Type -> ArgTypes -> SymbolTable -> SymbolTable
-addSymbol ident vtype argtypes = undefined
+addSymbol ident vtype argtypes table
+  | existsInTable ident table = table
+  | otherwise                 = table ++ [SymbolTableEntry{idString = ident, returnType = vtype, argumentTypes = argtypes}]
