@@ -100,14 +100,14 @@ maliceDef =
            , T.commentEnd = ""
            , T.commentLine = "###"
            , T.identStart = letter
-           , T.identLetter = alphaNum
+           , T.identLetter = alphaNum <|> oneOf "_"
            , T.reservedNames =
              ["a", "Alice", "and", "ate", "became", "because", "but", "closed",
               "contained", "drank", "either", "enough", "eventually", "found",
               "had", "letter", "looking-glass", "maybe", "number", "of",
-              "or", "opened", "perhaps", "piece", "room", "'s", "said",
+              "or", "opened", "perhaps", "piece", "room", "s", "said",
               "sentence", "so", "spider", "spoke", "The", "then", "times",
-              "too", "unsure", "was", "what", "which", ".", ","]
+              "too", "unsure", "was", "what", "which", ".", ",", "'"]
            , T.reservedOpNames =
              ["+", "-", "*", "/", "%"
              , ">", ">=", "==", "<=", "<", "!="
