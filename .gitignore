@@ -1,24 +1,12 @@
-# Compiled Object files
-*.slo
-*.lo
+cabal-dev/
+dist/
 *.o
+*.hi
+*.hse
 
-# Compiled Dynamic libraries
-*.so
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-
-# Executable
-bin/malice
-
-# General rubbish
 .*
 !.git*
 
-*~
 \#*\#
 auto-save-list
 tramp
