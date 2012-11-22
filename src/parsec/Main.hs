@@ -126,6 +126,7 @@ semi       = T.semi          lexer -- parses a semicolon
 whiteSpace = T.whiteSpace    lexer -- parses whitespace
 stringLit  = T.stringLiteral lexer -- parses string literal
 charLit    = T.charLiteral   lexer -- parses char literal
+commaSep   = T.commaSep      lexer -- parses a comma separated list
 
 maliceParse :: Parser Program
 maliceParse = do
@@ -160,26 +161,25 @@ decl =
      ; t <- vtype
      ; terminator
      ; return $ VArrayDecl t var e } <|>
-  (try $
-  do { reserved "The"
-     ; reserved "room"
-     ; f <- identifier
-     ; args <- parens formalParams
-     ; reserved "contained"
-     ; reserved "a"
-     ; t <- vtype
-     ; b <- body
-     ; return $ FuncDecl f args t b }) <|>
-  do { reserved "The"
-     ; reserved "looking-glass"
-     ; f <- identifier
-     ; args <- parens formalParams
-     ; b <- body
-     ; return $ ProcDecl f args b }
+  do { reserved "The";
+       (do { reserved "room"
+           ; f <- identifier
+           ; args <- parens formalParams
+           ; reserved "contained"
+           ; reserved "a"
+           ; t <- vtype
+           ; b <- body
+           ; return $ FuncDecl f args t b }) <|>
+       (do { reserved "looking-glass"
+           ; f <- identifier
+           ; args <- formalParams
+           ; b <- body
+           ; return $ ProcDecl f args b })
+     }
 
 formalParams :: Parser FormalParams
 formalParams = do
-  ps <- many formalParam
+  ps <- parens $ commaSep formalParam
   return $ FPList ps
 
 formalParam :: Parser FormalParam
@@ -332,7 +332,7 @@ exprTerm =
 
 actualParams :: Parser ActualParams
 actualParams = do
-  aps <- parens (T.commaSep lexer $ expr)
+  aps <- parens $ commaSep expr
   return $ APList aps
 
 terminator :: Parser ()
