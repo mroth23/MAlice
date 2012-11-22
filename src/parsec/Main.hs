@@ -127,10 +127,11 @@ whiteSpace = T.whiteSpace    lexer -- parses whitespace
 stringLit  = T.stringLiteral lexer -- parses string literal
 charLit    = T.charLiteral   lexer -- parses char literal
 commaSep   = T.commaSep      lexer -- parses a comma separated list
+lexeme     = T.lexeme        lexer -- parses with a parser, ignoring whitespace
 
 maliceParse :: Parser Program
 maliceParse = do
-  ds <- decls
+  ds <- (whiteSpace >> decls)
   return $ Program ds
 
 decls :: Parser Decls
@@ -164,7 +165,7 @@ decl =
   do { reserved "The";
        (do { reserved "room"
            ; f <- identifier
-           ; args <- parens formalParams
+           ; args <- formalParams
            ; reserved "contained"
            ; reserved "a"
            ; t <- vtype
@@ -325,7 +326,7 @@ exprTerm =
   do { var <- identifier; return $ EId var } <|>
   do { str <- stringLit; return $ EString str } <|>
   do { char <- charLit; return $ EChar char } <|>
-  do { var <- identifier; reserved "'s"; ix <- expr; reserved "piece";
+  do { var <- identifier; reserved "'"; reserved "s"; ix <- expr; reserved "piece";
             return $ EArrRef var ix } <|>
   do { f <- identifier; args <- actualParams
      ; return $ ECall f args }
