@@ -136,32 +136,31 @@ maliceParse = do
 
 decls :: Parser Decls
 decls = lexeme $ do
-  ps <- try . many1 $ try decl
+  ps <- many1 decl
   return $ DeclList ps
 
 decl :: Parser Decl
 decl = lexeme $
   (try $
   do { var <- identifier
-     ; reserved "was"
-     ; reserved "a"
-     ; t <- vtype
-     ; (do { terminator
-           ; return $ VarDecl t var }) <|>
-       (do { reserved "too"
-           ; terminator
-           ; return $ VarDecl t var }) <|>
-       (do { reserved "of"
+     ; (do { reserved "was"
+           ; reserved "a"
+           ; t <- vtype
+           ; (do { terminator
+                 ; return $ VarDecl t var }) <|>
+             (do { reserved "too"
+                 ; terminator
+                 ; return $ VarDecl t var }) <|>
+             (do { reserved "of"
+                 ; e <- expr
+                 ; terminator
+                 ; return $ VAssignDecl t var e }) }) <|>
+       (do { reserved "had"
            ; e <- expr
+           ; t <- vtype
            ; terminator
-           ; return $ VAssignDecl t var e })
+           ; return $ VArrayDecl t var e })
      }) <|>
-  do { var <- identifier
-     ; reserved "had"
-     ; e <- expr
-     ; t <- vtype
-     ; terminator
-     ; return $ VArrayDecl t var e } <|>
   do { reserved "The";
        (do { reserved "room"
            ; f <- identifier
@@ -179,18 +178,18 @@ decl = lexeme $
      }
 
 formalParams :: Parser FormalParams
-formalParams = lexeme $ do
+formalParams = try . lexeme $ do
   ps <- parens $ commaSep formalParam
   return $ FPList ps
 
 formalParam :: Parser FormalParam
-formalParam = lexeme $ do
+formalParam = try . lexeme $ do
   t <- vtype
   var <- identifier
   return $ Param t var
 
 body :: Parser Body
-body = lexeme $ do {
+body = try . lexeme $ do {
   reserved "opened";
   (do { reserved "closed"
       ; return EmptyBody }) <|>
@@ -205,12 +204,12 @@ body = lexeme $ do {
   }
 
 compoundStmt :: Parser CompoundStmt
-compoundStmt = lexeme $ do
+compoundStmt = try . lexeme $ do
   ss <- try . many $ try stmt
   return $ CSList ss
 
 stmt :: Parser Stmt
-stmt = lexeme $
+stmt = try . lexeme $
   do { b <- body; return $ SBody b } <|>
   do { reserved "."; return $ SNull } <|>
   (try $
@@ -320,7 +319,7 @@ opTable =
       Infix (reservedOp c >> return f) assoc
     opL = flip flip AssocLeft . op
 
-exprTerm =
+exprTerm = try . lexeme $
   parens expr <|>
   do { num <- intLit; return $ EInt num } <|>
   do { var <- identifier; return $ EId var } <|>
@@ -332,17 +331,17 @@ exprTerm =
      ; return $ ECall f args }
 
 actualParams :: Parser ActualParams
-actualParams = lexeme $ do
+actualParams = try . lexeme $ do
   aps <- parens $ commaSep expr
   return $ APList aps
 
 terminator :: Parser ()
-terminator = lexeme $
-  (reserved "." >> return ()) <|>
-  (reserved "," >> return ()) <|>
-  (reserved "and" >> return ()) <|>
-  (reserved "but" >> return ()) <|>
-  (reserved "then" >> return ())
+terminator =
+  reserved "." <|>
+  reserved "," <|>
+  reserved "and" <|>
+  reserved "but" <|>
+  reserved "then"
 
 main :: IO ()
 main = do
