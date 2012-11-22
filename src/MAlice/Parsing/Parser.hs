@@ -282,17 +282,17 @@ stmt = try . lexeme $
            ; elsest <- compoundStmt
            ; reserved "because"; reserved "Alice"; reserved "was"
            ; reserved "unsure"; reserved "which"
-           ; return $ SIf $ (e, cst) : (EEq (EInt 0) (EInt 0), elsest) : es})
+           ; return $ SIf $ (e, cst) : es ++ [(EEq (EInt 0) (EInt 0), elsest)]})
        -- TODO: Remove this ugly hack for else (make if clause data type?)
      }
 
 vtype :: Parser Type
-vtype = lexeme $(
+vtype = lexeme $ (
   (reserved "number" >> return Number) <|>
   (reserved "letter" >> return Letter) <|>
   (reserved "sentence" >> return Sentence) <|>
   do { reserved "spider"; t <- vtype; return $ RefType t } <?>
-  "valid type name")
+  "valid type name" )
 
 expr :: Parser Expr
 expr =
@@ -349,7 +349,8 @@ terminator =
   reserved "," <|>
   reserved "and" <|>
   reserved "but" <|>
-  reserved "then"
+  reserved "then" <?>
+  "statement terminator"
 
 parseMAlice :: String -> String -> String
 parseMAlice code name = do
