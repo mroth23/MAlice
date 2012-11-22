@@ -135,12 +135,12 @@ maliceParse = do
   return $ Program ds
 
 decls :: Parser Decls
-decls = do
+decls = lexeme $ do
   ps <- try . many1 $ try decl
   return $ DeclList ps
 
 decl :: Parser Decl
-decl =
+decl = lexeme $
   (try $
   do { var <- identifier
      ; reserved "was"
@@ -179,18 +179,18 @@ decl =
      }
 
 formalParams :: Parser FormalParams
-formalParams = do
+formalParams = lexeme $ do
   ps <- parens $ commaSep formalParam
   return $ FPList ps
 
 formalParam :: Parser FormalParam
-formalParam = do
+formalParam = lexeme $ do
   t <- vtype
   var <- identifier
   return $ Param t var
 
 body :: Parser Body
-body = do {
+body = lexeme $ do {
   reserved "opened";
   (do { reserved "closed"
       ; return EmptyBody }) <|>
@@ -205,12 +205,12 @@ body = do {
   }
 
 compoundStmt :: Parser CompoundStmt
-compoundStmt = do
+compoundStmt = lexeme $ do
   ss <- try . many $ try stmt
   return $ CSList ss
 
 stmt :: Parser Stmt
-stmt =
+stmt = lexeme $
   do { b <- body; return $ SBody b } <|>
   do { reserved "."; return $ SNull } <|>
   (try $
@@ -286,7 +286,7 @@ stmt =
      }
 
 vtype :: Parser Type
-vtype =
+vtype = lexeme $
   (reserved "number" >> return Number) <|>
   (reserved "letter" >> return Letter) <|>
   (reserved "sentence" >> return Sentence) <|>
@@ -332,12 +332,12 @@ exprTerm =
      ; return $ ECall f args }
 
 actualParams :: Parser ActualParams
-actualParams = do
+actualParams = lexeme $ do
   aps <- parens $ commaSep expr
   return $ APList aps
 
 terminator :: Parser ()
-terminator =
+terminator = lexeme $
   (reserved "." >> return ()) <|>
   (reserved "," >> return ()) <|>
   (reserved "and" >> return ()) <|>
