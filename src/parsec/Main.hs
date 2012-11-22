@@ -205,7 +205,7 @@ body = try . lexeme $ do {
 
 compoundStmt :: Parser CompoundStmt
 compoundStmt = try . lexeme $ do
-  ss <- try . many $ try stmt
+  ss <- many stmt
   return $ CSList ss
 
 stmt :: Parser Stmt
@@ -267,7 +267,7 @@ stmt = try . lexeme $
      ; reserved "so"
      ; cst <- compoundStmt
      ; let readElseIfs =
-              (try . many $ try
+              (try . many $ try . lexeme $
                (do { reserved "or"
                    ; reserved "maybe"
                    ; e' <- parens expr
@@ -322,13 +322,18 @@ opTable =
 exprTerm = try . lexeme $
   parens expr <|>
   do { num <- intLit; return $ EInt num } <|>
-  do { var <- identifier; return $ EId var } <|>
+  do { var <- identifier
+     ; (do { reserved "'"
+           ; reserved "s"
+           ; ix <- expr
+           ; reserved "piece"
+           ; return $ EArrRef var ix }) <|>
+       (do { args <- actualParams
+           ; return $ ECall var args }) <|>
+       (do { notFollowedBy $ reserved "'" <|> (actualParams >> return ())
+           ; return $ EId var }) } <|>
   do { str <- stringLit; return $ EString str } <|>
-  do { char <- charLit; return $ EChar char } <|>
-  do { var <- identifier; reserved "'"; reserved "s"; ix <- expr; reserved "piece";
-            return $ EArrRef var ix } <|>
-  do { f <- identifier; args <- actualParams
-     ; return $ ECall f args }
+  do { char <- charLit; return $ EChar char }
 
 actualParams :: Parser ActualParams
 actualParams = try . lexeme $ do
