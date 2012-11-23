@@ -1,14 +1,28 @@
-module MAlice.Parsing.Parser ( parseMAlice
-                             ) where
+module MAlice.Parsing.Parser
+       ( mparse
+       , MParser (..)
+       ) where
 
 import Control.Monad
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as T
+
+import MAlice.Parsing.ParserState
 import MAlice.Language.AST
 import MAlice.Language.SymbolTable
-import MAlice.SemanticAnalysis.TypeCheck
+import MAlice.Language.Types
+import MAlice.SemanticAnalysis.TypeChecker
+
+mparse :: String -> String -> Either String Program
+mparse code name = do
+  case (runParser maliceParse initState name code) of
+    Left err -> Left ("Parse error in " ++ show err)
+    Right (ast, st) ->
+      case (errorList st) of
+        [] -> Right ast
+        el -> Left $ "Error:\n" ++ concatMap ((++"\n\n") . show) el
 
 maliceDef =
   emptyDef { T.commentStart = ""
@@ -29,7 +43,7 @@ maliceDef =
              , "&&", "||", "!", "~", "^", "|", "&"]
            }
 
-lexer :: T.TokenParser ()
+lexer :: T.TokenParser ParserState
 lexer = T.makeTokenParser maliceDef
 
 identifier = T.identifier    lexer -- parses an identifier
@@ -44,18 +58,19 @@ charLit    = T.charLiteral   lexer -- parses char literal
 commaSep   = T.commaSep      lexer -- parses a comma separated list
 lexeme     = T.lexeme        lexer -- parses with a parser, ignoring whitespace
 
-maliceParse :: Parser Program
+maliceParse :: MParser (Program, ParserState)
 maliceParse = do
   ds <- (whiteSpace >> decls)
   eof
-  return $ Program ds
+  finalState <- getState
+  return $ (Program ds, finalState)
 
-decls :: Parser Decls
+decls :: MParser Decls
 decls = lexeme $ do
   ps <- many1 decl
   return $ DeclList ps
 
-decl :: Parser Decl
+decl :: MParser Decl
 decl = lexeme $
   (try $
   do { var <- identifier
@@ -93,18 +108,18 @@ decl = lexeme $
            ; return $ ProcDecl f args b })
      }
 
-formalParams :: Parser FormalParams
+formalParams :: MParser FormalParams
 formalParams = try . lexeme $ do
   ps <- parens $ commaSep formalParam
   return $ FPList ps
 
-formalParam :: Parser FormalParam
+formalParam :: MParser FormalParam
 formalParam = try . lexeme $ do
   t <- vtype
   var <- identifier
   return $ Param t var
 
-body :: Parser Body
+body :: MParser Body
 body = try . lexeme $ do {
   reserved "opened";
   (do { reserved "closed"
@@ -119,12 +134,12 @@ body = try . lexeme $ do {
       ; return $ DeclBody ds cs })
   }
 
-compoundStmt :: Parser CompoundStmt
+compoundStmt :: MParser CompoundStmt
 compoundStmt = try . lexeme $ do
   ss <- many stmt
   return $ CSList ss
 
-stmt :: Parser Stmt
+stmt :: MParser Stmt
 stmt = try . lexeme $
   do { b <- body; return $ SBody b } <|>
   do { reserved "."; return $ SNull } <|>
@@ -202,7 +217,7 @@ stmt = try . lexeme $
        -- TODO: Remove this ugly hack for else (make if clause data type?)
      }
 
-vtype :: Parser Type
+vtype :: MParser Type
 vtype = lexeme $ (
   (reserved "number" >> return Number) <|>
   (reserved "letter" >> return Letter) <|>
@@ -210,7 +225,7 @@ vtype = lexeme $ (
   do { reserved "spider"; t <- vtype; return $ RefType t } <?>
   "valid type name" )
 
-expr :: Parser Expr
+expr :: MParser Expr
 expr =
   buildExpressionParser opTable exprTerm
 
@@ -254,12 +269,12 @@ exprTerm = try . lexeme $
   do { str <- stringLit; return $ EString str } <|>
   do { char <- charLit; return $ EChar char }
 
-actualParams :: Parser ActualParams
+actualParams :: MParser ActualParams
 actualParams = try . lexeme $ do
   aps <- parens $ commaSep expr
   return $ APList aps
 
-terminator :: Parser ()
+terminator :: MParser ()
 terminator =
   reserved "." <|>
   reserved "," <|>
@@ -267,9 +282,3 @@ terminator =
   reserved "but" <|>
   reserved "then" <?>
   "statement terminator"
-
-parseMAlice :: String -> String -> String
-parseMAlice code name = do
-  case parse maliceParse name code of
-    Left err -> "Parse error in " ++ show err
-    Right ast -> "Success: " ++ show ast

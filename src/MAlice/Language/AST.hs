@@ -1,5 +1,7 @@
 module MAlice.Language.AST where
 
+import MAlice.Language.Types
+
 data Program =
   Program Decls
   deriving (Eq, Show)
@@ -46,12 +48,6 @@ data Stmt =
   SCall Ident ActualParams |
   SLoop Expr CompoundStmt |
   SIf [(Expr, CompoundStmt)]
-  deriving (Eq, Show)
-
-{- It's impossible to construct boolean types,
-   but they are necessary for type checking -}
-data Type =
-  Number | Letter | Sentence | Boolean | RefType Type
   deriving (Eq, Show)
 
 data Expr =

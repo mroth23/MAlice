@@ -8,4 +8,6 @@ main :: IO ()
 main = do
   args <- getArgs
   code <- readFile $ args !! 0
-  putStrLn $ MP.parseMAlice code $ args !! 0
+  case (MP.mparse code $ args !! 0) of
+    Left err -> putStrLn err
+    Right ast -> putStrLn . show $ ast
