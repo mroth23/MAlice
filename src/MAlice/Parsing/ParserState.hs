@@ -8,7 +8,7 @@ import Control.Monad (liftM)
 type MParser a = GenParser Char ParserState a
 
 data ParserState = ParserState
-                   { errorList :: [ParseError]
+                   { errorList :: [SemanticError]
                    , symTables :: [SymbolTable] }
 
 getSymbolTables :: MParser [SymbolTable]
@@ -19,13 +19,13 @@ initState =
   ParserState { errorList = []
               , symTables = [] }
 
-data ParseError =
+data SemanticError =
   TypeError                String |
   MultipleDeclarationError String |
   UnknownIdentifierError   String |
   CallTypeError            String
 
-instance Show ParseError where
+instance Show SemanticError where
   show (TypeError msg) =
     "Type error: " ++ msg
   show (MultipleDeclarationError msg) =
@@ -35,6 +35,6 @@ instance Show ParseError where
   show (CallTypeError msg) =
     "Call signature mismatch: " ++ msg
 
-logError :: ParseError -> MParser ()
+logError :: SemanticError -> MParser ()
 logError perr =
   updateState $ \st -> st { errorList = errorList st ++ [perr] }

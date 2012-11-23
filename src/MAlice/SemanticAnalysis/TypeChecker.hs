@@ -1,6 +1,5 @@
 module MAlice.SemanticAnalysis.TypeChecker where
 
-
 import MAlice.Language.AST
 import MAlice.Language.SymbolTable
 import MAlice.Language.Types
@@ -9,49 +8,49 @@ import MAlice.Parsing.ParserState
 import Prelude hiding (fail)
 import Control.Monad hiding (fail)
 
-type CoerceResult = Either String Type
+type TestResult = Either String Type
 
-succeed :: Type -> CoerceResult
+succeed :: Type -> TestResult
 succeed = Right
 
-fail :: (Show a) => String -> a -> CoerceResult
+fail :: (Show a) => String -> a -> TestResult
 fail s t = Left ("Expected " ++ s ++ "\nActually got " ++ show t)
 
-testUNumOp :: Type -> CoerceResult
+testUNumOp :: Type -> TestResult
 testUNumOp t =
   if (isNum t)
   then succeed t
   else fail "a numeric type" t
 
-testBNumOp :: Type -> Type -> CoerceResult
+testBNumOp :: Type -> Type -> TestResult
 testBNumOp t1 t2 =
   if (isNum t1 && isNum t2 && t1 == t2)
   then succeed t1
   else fail "numeric types on binary numeric operation" (t1, t2)
 
-testUBoolOp :: Type -> CoerceResult
+testUBoolOp :: Type -> TestResult
 testUBoolOp t =
   case t of
     Boolean -> succeed Boolean
     _       -> fail "type Boolean" t
 
-testBBoolOp :: Type -> Type -> CoerceResult
+testBBoolOp :: Type -> Type -> TestResult
 testBBoolOp Boolean Boolean = succeed Boolean
 testBBoolOp t1 t2 = fail "two Boolean types on boolean operation" (t1, t2)
 
-testRelOp :: Type -> Type -> CoerceResult
+testRelOp :: Type -> Type -> TestResult
 testRelOp t1 t2 =
   if (isOrd t1 && isOrd t2 && t1 == t2)
   then succeed t1
   else fail "two Ord types on relational operation" (t1, t2)
 
-testEqOp :: Type -> Type -> CoerceResult
+testEqOp :: Type -> Type -> TestResult
 testEqOp t1 t2 =
   if (isEq t1 && isEq t2 && t1 == t2)
      then succeed t1
           else fail "two equal, comparable types" (t1, t2)
 
-testAssignOp :: Type -> Type -> CoerceResult
+testAssignOp :: Type -> Type -> TestResult
 testAssignOp t1 t2 =
   if (t1 == t2)
   then succeed t1
@@ -95,7 +94,7 @@ getVarType var = do
   ts <- getSymbolTables
   let v = lookupInTables var ts
   case v of
-    Nothing -> logError . UnknownIdentifierError $ var >> return Number
+    Nothing -> (logError . UnknownIdentifierError $ var) >> return Number
 
 getArrayType :: String -> MParser Type
 getArrayType var = do
@@ -109,14 +108,14 @@ getArrayType var = do
 getDecl :: String -> MParser SymbolTableEntry
 getDecl = undefined
 
-inferUnary :: (Type -> CoerceResult) -> Expr -> MParser Type
+inferUnary :: (Type -> TestResult) -> Expr -> MParser Type
 inferUnary test e1 = do
   t1 <- inferType e1
   case test t1 of
     Right t  -> return t
     Left msg -> (logError . TypeError $ msg) >> return t1
 
-inferBinary :: (Type -> Type -> CoerceResult) -> Expr -> Expr -> MParser Type
+inferBinary :: (Type -> Type -> TestResult) -> Expr -> Expr -> MParser Type
 inferBinary test e1 e2 = do
   t1 <- inferType e1
   t2 <- inferType e2

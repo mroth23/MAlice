@@ -36,4 +36,8 @@ existsInTable symbol (entry:rest)
 addSymbol :: String -> Type -> ArgTypes -> SymbolTable -> SymbolTable
 addSymbol ident vtype argtypes table
   | existsInTable ident table = table
-  | otherwise                 = table ++ [SymbolTableEntry{idString = ident, returnType = vtype, argumentTypes = argtypes}]
+  | otherwise =
+      table ++ [SymbolTableEntry { idString = ident
+                                 , idType = IdVariable
+                                 , returnType = vtype
+                                 , argumentTypes = argtypes}]
