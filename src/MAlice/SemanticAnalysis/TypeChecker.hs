@@ -91,7 +91,11 @@ inferType ex =
       return $ returnType fdecl
 
 getVarType :: String -> MParser Type
-getVarType = undefined
+getVarType var = do
+  ts <- getSymbolTables
+  let v = lookupInTables var ts
+  case v of
+    Nothing -> logError . UnknownIdentifierError $ var >> return Number
 
 getArrayType :: String -> MParser Type
 getArrayType var = do
