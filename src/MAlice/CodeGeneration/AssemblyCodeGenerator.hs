@@ -4,20 +4,43 @@ import MAlice.CodeGeneration.ASM
 import MAlice.Language.AST
 import MAlice.Language.Types
 
-generateCode :: Program -> IO ()
-generateCode (Program (DeclList decls))
-  = outputSequence (concatMap (generateDecl) (decls))
+allRegs :: [Register]
+allRegs =  [RAX, RBX, RCX, RDX, R8, R9, R10, R11, R12, R13, R14]
 
-generateDecl :: Decl -> [IO ()]
-generateDecl (VarDecl t ident)
+saveRegs :: [Register] -> [IO ()]
+saveRegs regsNotInUse = saveRegs' allRegs regsNotInUse
+saveRegs' :: [Register] -> [Register] -> [IO ()]
+saveRegs' [] regsNotInUse = []
+saveRegs' (x:xs) regsNotInUse
+  | elem x regsNotInUse = saveRegs' xs regsNotInUse
+  | otherwise           = [putStrLn (show (Push x))] ++ saveRegs' xs regsNotInUse
+
+restRegs :: [Register] -> [IO ()]
+restRegs regsNotInUse = reverse (restRegs' allRegs regsNotInUse)
+restRegs' :: [Register] -> [Register] -> [IO ()]
+restRegs' [] regsNotInUse = []
+restRegs' (x:xs) regsNotInUse
+  | elem x regsNotInUse = restRegs' xs regsNotInUse
+  | otherwise           = [putStrLn (show (Pop x))] ++ restRegs' xs regsNotInUse
+
+generateCode :: Program -> IO ()
+generateCode (Program (DeclList [])) 
+  = return ()
+generateCode (Program (DeclList (decl:decls)))
+  = outputSequence ((generateDecl decl allRegs) ++ [generateCode (Program (DeclList decls))])
+
+generateDecl :: Decl -> [Register] -> [IO ()]
+generateDecl (VarDecl t ident) regsNotInUse
+  | t == Sentence = [] -- This is a string and should be defined in _global text seperately.
+  | t == Letter   = undefined
+  | otherwise     = undefined
+generateDecl (VAssignDecl t ident expr) regsNotInUse
   = undefined
-generateDecl (VAssignDecl t ident expr)
+generateDecl (VArrayDecl t ident expr) regsNotInUse
   = undefined
-generateDecl (VArrayDecl t ident expr)
+generateDecl (FuncDecl ident (FPList formalParams) t body) regsNotInUse
   = undefined
-generateDecl (FuncDecl ident (FPList formalParams) t body)
-  = undefined
-generateDecl (ProcDecl ident (FPList formalParams) body)
+generateDecl (ProcDecl ident (FPList formalParams) body) regsNotInUse
   = undefined
 
 generateFormalParams :: [FormalParam] -> [IO ()]
