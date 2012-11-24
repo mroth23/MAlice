@@ -40,7 +40,7 @@ getVariableLoc key (_:rest)
 -- Inserts a variable location into the variable store.
 insertVariableLoc :: VariableLoc -> VariableStore -> VariableStore
 insertVariableLoc varLoc varStore 
-  = varStore ++ varLoc
+  = varStore ++ [varLoc]
 
 
 -- Removes variable location store, I hope there is only one in there...
