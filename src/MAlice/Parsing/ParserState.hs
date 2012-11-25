@@ -10,19 +10,23 @@ type MParser a = GenParser Char ParserState a
 
 data ParserState =
   ParserState { errorList :: [SemanticError]
-              , symTables :: [SymbolTable] }
+              , symTables :: [SymbolTable]
+              , scopes :: [String] }
 
 initState :: ParserState
 initState =
   ParserState { errorList = []
-              , symTables = [[]] }
+              , symTables = [[]]
+              , scopes = [] }
 
 data SemanticError =
   TypeError                String |
   MultipleDeclarationError String |
   UnknownIdentifierError   String |
   CallTypeError            String |
-  InvalidCalleeError       String
+  InvalidIdKindError       String |
+  InvalidReturnError       String |
+  EntryPointError          String
 
 instance Show SemanticError where
   show (TypeError msg) =
@@ -33,20 +37,26 @@ instance Show SemanticError where
     "Identifier not in scope: " ++ msg
   show (CallTypeError msg) =
     "Call signature mismatch: " ++ msg
-  show (InvalidCalleeError msg) =
-    "Invalid callee: " ++ msg
+  show (InvalidIdKindError msg) =
+    "Invalid identifier kind: " ++ msg
+  show (InvalidReturnError msg) =
+    "Invalid return statement: " ++ msg
+  show (EntryPointError msg) =
+    "Program entry point error: " ++ msg
 
 logError :: SemanticError -> MParser ()
 logError perr =
   updateState $ \st -> st { errorList = errorList st ++ [perr] }
 
-newSymbolTable :: MParser ()
-newSymbolTable =
-  updateState $ \st -> st { symTables = [] : symTables st }
+newSymbolTable :: String -> MParser ()
+newSymbolTable scope =
+  updateState $ \st -> st { symTables = [] : symTables st
+                          , scopes = scope : scopes st }
 
 removeSymbolTable :: MParser ()
 removeSymbolTable =
-  updateState $ \st -> st { symTables = tail . symTables $ st }
+  updateState $ \st -> st { symTables = tail . symTables $ st
+                          , scopes = tail . scopes $ st }
 
 getSymbolTables :: MParser [SymbolTable]
 getSymbolTables = symTables `liftM` getState
@@ -72,3 +82,8 @@ insertSymbol ident vartype idtype argtypes = do
   (t:ts) <- getSymbolTables
   let newt = addSymbol ident vartype idtype argtypes t
   updateState $ \st -> st { symTables = newt : ts }
+
+-- |Returns the name of the current scope
+getCurrentScope :: MParser String
+getCurrentScope =
+  head `liftM` (scopes `liftM` getState)
