@@ -58,26 +58,32 @@ charLit    = T.charLiteral   lexer -- parses char literal
 commaSep   = T.commaSep      lexer -- parses a comma separated list
 lexeme     = T.lexeme        lexer -- parses with a parser, ignoring whitespace
 
+-- |Parses an alice source file and returns the AST and parser state.
+-- Whitespace is ignored, the parser then proceeds to the EOF. The existence
+-- of a program entry point, the procedure 'hatta', is also checked.
 maliceParse :: MParser (Program, ParserState)
 maliceParse = do
   ds <- (whiteSpace >> decls)
   eof
-  finalState <- getState
   checkEntryPoint
+  finalState <- getState
   return $ (Program ds, finalState)
 
+-- |Parses a list of at least one (valid) declaration
 decls :: MParser Decls
 decls = (lexeme $ do
   ps <- many1 decl
   return $ DeclList ps)
   <?> "valid declaration"
 
-
+-- |Parses a variable declaration and adds the variable to the symbol table.
+varDecl :: MParser Decl
 varDecl = (try $
   do { var <- identifier
      ; (do { reserved "was"
            ; reserved "a"
            ; t <- vtype
+             --Case 1: Variable declaration
            ; (do { terminator
                  ; insertSymbol var (Just t) IdVariable []
                  ; return $ VarDecl t var }) <|>
