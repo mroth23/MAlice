@@ -11,6 +11,7 @@ data SymbolTableEntry =
   , idType :: IdentifierType   -- Identifier type
   , returnType :: Maybe Type   -- Return type / variable type
   , argumentTypes :: ArgTypes }-- Argument types (if any)
+  deriving (Eq, Show)
 
 data IdentifierType =
   IdVariable | IdFunction | IdProcedure
