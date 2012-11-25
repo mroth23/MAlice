@@ -20,9 +20,9 @@ mparse code name = do
   case (runParser maliceParse initState name code) of
     Left err -> Left ("Parse error in " ++ show err)
     Right (ast, st) ->
-      case (errorList st) of
+      case errors . errorList $ st of
         [] -> Right ast
-        el -> Left $ "Error:\n" ++ concatMap ((++"\n") . show) el
+        el -> Left $ "Error(s):\n" ++ show (errorList st)
 
 maliceDef =
   emptyDef { T.commentStart = ""

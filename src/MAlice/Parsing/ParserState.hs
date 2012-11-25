@@ -1,23 +1,32 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module MAlice.Parsing.ParserState where
 
 import MAlice.Language.Types
 import MAlice.Language.SymbolTable
-import Text.ParserCombinators.Parsec.Prim (GenParser (..))
+import Text.ParserCombinators.Parsec.Prim (GenParser (..), getPosition)
+import Text.Parsec.Pos (SourcePos(..))
 import Text.ParserCombinators.Parsec (getState, updateState)
 import Control.Monad (liftM)
 
 type MParser a = GenParser Char ParserState a
 
 data ParserState =
-  ParserState { errorList :: [SemanticError]
+  ParserState { errorList :: SemanticErrors
               , symTables :: [SymbolTable]
               , scopes :: [String] }
 
 initState :: ParserState
 initState =
-  ParserState { errorList = []
+  ParserState { errorList = SemanticErrors { errors = [] }
               , symTables = [[]]
               , scopes = [] }
+
+newtype SemanticErrors =
+  SemanticErrors { errors :: [(SemanticError, SourcePos)] }
+
+instance Show SemanticErrors where
+  show =
+    concatMap (\(err, pos) -> show pos ++ ", " ++ show err ++ "\n") . errors
 
 data SemanticError =
   TypeError                String |
@@ -45,8 +54,12 @@ instance Show SemanticError where
     "Program entry point error: " ++ msg
 
 logError :: SemanticError -> MParser ()
-logError perr =
-  updateState $ \st -> st { errorList = errorList st ++ [perr] }
+logError perr = do
+  st <- getState
+  pos <- getPosition
+  let el = errorList st
+  let newEl = el { errors = errors el ++ [(perr, pos)]}
+  updateState $ \st -> st { errorList = newEl }
 
 newSymbolTable :: String -> MParser ()
 newSymbolTable scope =
