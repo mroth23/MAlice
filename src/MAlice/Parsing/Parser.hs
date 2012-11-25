@@ -70,28 +70,36 @@ decls = lexeme $ do
   ps <- many1 decl
   return $ DeclList ps
 
-decl :: MParser Decl
-decl = lexeme $
-  (try $
+
+varDecl = try $
   do { var <- identifier
      ; (do { reserved "was"
            ; reserved "a"
            ; t <- vtype
            ; (do { terminator
+                 ; insertSymbol var (Just t) IdVariable []
                  ; return $ VarDecl t var }) <|>
              (do { reserved "too"
                  ; terminator
+                 ; insertSymbol var (Just t) IdVariable []
                  ; return $ VarDecl t var }) <|>
              (do { reserved "of"
                  ; e <- expr
                  ; terminator
-                 ; return $ VAssignDecl t var e }) }) <|>
+                 ; insertSymbol var (Just t) IdVariable []
+                 ; return $ VAssignDecl t var e })
+           }) <|>
        (do { reserved "had"
            ; e <- expr
+           -- Array index must be an integer
+           ; typecheckExpr Number e
            ; t <- vtype
            ; terminator
+           ; insertSymbol var (Just . RefType $ t) IdVariable []
            ; return $ VArrayDecl t var e })
-     }) <|>
+     }
+
+methodDecl =
   do { reserved "The";
        (do { reserved "room"
            ; f <- identifier
@@ -100,13 +108,22 @@ decl = lexeme $
            ; reserved "a"
            ; t <- vtype
            ; b <- body
+           ; argTypes <- inferFParamTypes args
+           ; insertSymbol f (Just t) IdFunction argTypes
            ; return $ FuncDecl f args t b }) <|>
        (do { reserved "looking-glass"
            ; f <- identifier
            ; args <- formalParams
            ; b <- body
+           ; argTypes <- inferFParamTypes args
+           ; insertSymbol f Nothing IdProcedure argTypes
            ; return $ ProcDecl f args b })
      }
+
+decl :: MParser Decl
+decl = lexeme $
+       varDecl <|>
+       methodDecl
 
 formalParams :: MParser FormalParams
 formalParams = try . lexeme $ do
@@ -121,17 +138,17 @@ formalParam = try . lexeme $ do
 
 body :: MParser Body
 body = try . lexeme $ do {
-  reserved "opened";
-  (do { reserved "closed"
-      ; return EmptyBody }) <|>
-  (try $
-  (do { cs <- compoundStmt
-      ; reserved "closed"
-      ; return $ StmtBody cs })) <|>
-  (do { ds <- decls
-      ; cs <- compoundStmt
-      ; reserved "closed"
-      ; return $ DeclBody ds cs })
+    reserved "opened"
+  ; (do { reserved "closed"
+        ; return EmptyBody })       <|>
+    (try $
+     (do { cs <- compoundStmt
+         ; reserved "closed"
+         ; return $ StmtBody cs })) <|>
+    (do { ds <- decls
+        ; cs <- compoundStmt
+        ; reserved "closed"
+        ; return $ DeclBody ds cs })
   }
 
 compoundStmt :: MParser CompoundStmt
@@ -139,89 +156,125 @@ compoundStmt = try . lexeme $ do
   ss <- many stmt
   return $ CSList ss
 
+bodyStmt :: MParser Stmt
+bodyStmt = do
+  b <- body
+  return $ SBody b
+
+nullStmt :: MParser Stmt
+nullStmt = do
+  reserved "."
+  return SNull
+
+idStmt :: MParser Stmt
+idStmt = try $ do
+   f <- identifier
+   args <- actualParams
+   terminator
+   return $ SCall f args
+
+exprStmt :: MParser Stmt
+exprStmt = do {
+  e1 <- expr;
+  (do { reserved "became"
+      ; e2 <- expr
+      ; terminator
+      ; return $ SAssign e1 e2 }) <|>
+  (do { reserved "ate"
+      ; terminator
+      ; return $ SInc e1 })       <|>
+  (do { reserved "drank"
+      ; terminator
+      ; return $ SDec e1 })       <|>
+  (do { reserved "said"
+      ; reserved "Alice"
+      ; terminator
+      ; return $ SPrint e1 })     <|>
+  (do { reserved "spoke"
+      ; terminator
+      ; return $ SPrint e1 }) }
+
+returnStmt :: MParser Stmt
+returnStmt = do
+  reserved "Alice"
+  reserved "found"
+  e <- expr
+  reserved "."
+  return $ SReturn e
+
+inputStmt :: MParser Stmt
+inputStmt = do
+  reserved "what"
+  reserved "was"
+  var <- expr
+  reserved "?"
+  return $ SInput var
+
+loopStmt :: MParser Stmt
+loopStmt = do
+  reserved "eventually"
+  e <- parens expr
+  reserved "because"
+  cond <- compoundStmt
+  reserved "enough"
+  reserved "times"
+  return $ SLoop e cond
+
+ifElseStmt :: MParser Stmt
+ifElseStmt = do
+  reserved "either"
+  e <- parens expr
+  reserved "so"
+  c1 <- compoundStmt
+  reserved "or"
+  c2 <- compoundStmt
+  reserved "because"; reserved "Alice"; reserved "was"
+  reserved "unsure"; reserved "which"
+  return $ SIf [(e, c1), (ENot e, c2)]
+
+ifElseIfStmt :: MParser Stmt
+ifElseIfStmt = do {
+    reserved "perhaps"
+  ; e <- parens expr
+  ; reserved "so"
+  ; cst <- compoundStmt
+  ; let readElseIfs =
+          (try . many $ try . lexeme $
+           (do { reserved "or"
+               ; reserved "maybe"
+               ; e' <- parens expr
+               ; reserved "so"
+               ; cst' <- compoundStmt
+               ; return (e', cst')}))
+  ; es <- readElseIfs
+  ; (do { reserved "because"; reserved "Alice"; reserved "was"
+        ; reserved "unsure"; reserved "which"
+        ; return . SIf $ (e, cst) : es })
+    <|>
+    (do { reserved "or"
+        ; elsest <- compoundStmt
+        ; reserved "because"; reserved "Alice"; reserved "was"
+        ; reserved "unsure"; reserved "which"
+        ; return $ SIf $ (e, cst) : es ++ [(EEq (EInt 0) (EInt 0), elsest)] }) }
+       -- TODO: Remove this hack for else (make if clause data type?)
+
 stmt :: MParser Stmt
-stmt = try . lexeme $
-  do { b <- body; return $ SBody b } <|>
-  do { reserved "."; return $ SNull } <|>
-  (try $
-  do { f <- identifier
-     ; args <- actualParams
-     ; terminator
-     ; return $ SCall f args }) <|>
-  do { e1 <- expr;
-       (do { reserved "became"
-           ; e2 <- expr
-           ; terminator
-           ; return $ SAssign e1 e2 }) <|>
-       (do { reserved "ate"
-           ; terminator
-           ; return $ SInc e1 }) <|>
-       (do { reserved "drank"
-           ; terminator
-           ; return $ SDec e1 }) <|>
-       (do { reserved "said"
-           ; reserved "Alice"
-           ; terminator
-           ; return $ SPrint e1 }) <|>
-       (do { reserved "spoke"
-           ; terminator
-           ; return $ SPrint e1 })
-     } <|>
-  do { reserved "Alice"
-     ; reserved "found"
-     ; e <- expr
-     ; reserved "."
-     ; return $ SReturn e } <|>
-  do { reserved "what"
-     ; reserved "was"
-     ; var <- expr
-     ; reserved "?"
-     ; return $ SInput var } <|>
-  do { reserved "eventually"
-     ; e <- parens expr
-     ; reserved "because"
-     ; cond <- compoundStmt
-     ; reserved "enough"
-     ; reserved "times"
-     ; return $ SLoop e cond } <|>
-  do { reserved "either"
-     ; e <- parens expr
-     ; reserved "so"
-     ; c1 <- compoundStmt
-     ; reserved "or"
-     ; c2 <- compoundStmt
-     ; reserved "because"; reserved "Alice"; reserved "was"
-     ; reserved "unsure"; reserved "which"
-     ; return $ SIf [(e, c1), (ENot e, c2)] } <|>
-  do { reserved "perhaps"
-     ; e <- parens expr
-     ; reserved "so"
-     ; cst <- compoundStmt
-     ; let readElseIfs =
-              (try . many $ try . lexeme $
-               (do { reserved "or"
-                   ; reserved "maybe"
-                   ; e' <- parens expr
-                   ; reserved "so"
-                   ; cst' <- compoundStmt
-                   ; return (e', cst')}))
-     ; es <- readElseIfs
-     ; (do { reserved "because"; reserved "Alice"; reserved "was"
-           ; reserved "unsure"; reserved "which"
-           ; return . SIf $ (e, cst) : es }) <|>
-       (do { reserved "or"
-           ; elsest <- compoundStmt
-           ; reserved "because"; reserved "Alice"; reserved "was"
-           ; reserved "unsure"; reserved "which"
-           ; return $ SIf $ (e, cst) : es ++ [(EEq (EInt 0) (EInt 0), elsest)]})
-       -- TODO: Remove this ugly hack for else (make if clause data type?)
-     }
+stmt =
+  bodyStmt   <|>
+  nullStmt   <|>
+  idStmt     <|>
+  exprStmt   <|>
+  returnStmt <|>
+  inputStmt  <|>
+  loopStmt   <|>
+  ifElseStmt <|>
+  ifElseIfStmt
 
 vtype :: MParser Type
 vtype = lexeme $ (
-  (reserved "number" >> return Number) <|>
-  (reserved "letter" >> return Letter) <|>
-  (reserved "sentence" >> return Sentence) <|>
+  (reserved "number" >> return Number)                    <|>
+  (reserved "letter" >> return Letter)                    <|>
+  (reserved "sentence" >> return Sentence)                <|>
   do { reserved "spider"; t <- vtype; return $ RefType t } <?>
   "valid type name" )
 
@@ -255,17 +308,17 @@ opTable =
 
 exprTerm = try . lexeme $
   parens expr <|>
-  do { num <- intLit; return $ EInt num } <|>
+  do { num <- intLit; return $ EInt num }       <|>
   do { var <- identifier
      ; (do { reserved "'s"
            ; ix <- expr
            ; reserved "piece"
-           ; return $ EArrRef var ix }) <|>
+           ; return $ EArrRef var ix })        <|>
        (do { args <- actualParams
-           ; return $ ECall var args }) <|>
+           ; return $ ECall var args })        <|>
        (do { notFollowedBy $
              reserved "'s" <|> (actualParams >> return ())
-           ; return $ EId var }) } <|>
+           ; return $ EId var }) }             <|>
   do { str <- stringLit; return $ EString str } <|>
   do { char <- charLit; return $ EChar char }
 
@@ -276,9 +329,9 @@ actualParams = try . lexeme $ do
 
 terminator :: MParser ()
 terminator =
-  reserved "." <|>
-  reserved "," <|>
-  reserved "and" <|>
-  reserved "but" <|>
+  reserved "."    <|>
+  reserved ","    <|>
+  reserved "and"  <|>
+  reserved "but"  <|>
   reserved "then" <?>
   "statement terminator"
