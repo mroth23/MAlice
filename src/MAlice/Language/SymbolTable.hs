@@ -1,15 +1,20 @@
 module MAlice.Language.SymbolTable where
+
 import MAlice.Language.Types (Type(..))
+import Control.Monad
 
 type SymbolTable = [SymbolTableEntry]
 
-data SymbolTableEntry = SymbolTableEntry
-                        { idString :: String
-                        , idType :: IdentifierType
-                        , returnType :: Type
-                        , argumentTypes :: ArgTypes }
+data SymbolTableEntry =
+  SymbolTableEntry
+  { idString :: String         -- String identifier
+  , idType :: IdentifierType   -- Identifier type
+  , returnType :: Maybe Type   -- Return type / variable type
+  , argumentTypes :: ArgTypes }-- Argument types (if any)
 
-data IdentifierType = IdVariable | IdFunction | IdProcedure
+data IdentifierType =
+  IdVariable | IdFunction | IdProcedure
+  deriving (Eq, Show)
 
 type ArgTypes = [Type]
 
@@ -17,15 +22,15 @@ lookupInTables :: String -> [SymbolTable] -> Maybe SymbolTableEntry
 lookupInTables symbol [] =
   Nothing
 lookupInTables symbol (t:ts) =
-  case lookupSymbol symbol t of
+  case lookupInTable symbol t of
     Nothing -> lookupInTables symbol ts
     Just e  -> Just e
 
-lookupSymbol :: String -> SymbolTable -> Maybe SymbolTableEntry
-lookupSymbol _ [] = Nothing
-lookupSymbol symbol (entry:rest)
+lookupInTable :: String -> SymbolTable -> Maybe SymbolTableEntry
+lookupInTable _ [] = Nothing
+lookupInTable symbol (entry:rest)
   | idString entry == symbol = Just entry
-  | otherwise               = lookupSymbol symbol rest
+  | otherwise               = lookupInTable symbol rest
 
 existsInTable :: String -> SymbolTable -> Bool
 existsInTable symbol [] = False
@@ -33,11 +38,12 @@ existsInTable symbol (entry:rest)
   | idString entry == symbol = True
   | otherwise               = existsInTable symbol rest
 
-addSymbol :: String -> Type -> ArgTypes -> SymbolTable -> SymbolTable
-addSymbol ident vtype argtypes table
+addSymbol :: String -> Maybe Type -> IdentifierType -> ArgTypes ->
+             SymbolTable -> SymbolTable
+addSymbol ident vtype idtype argtypes table
   | existsInTable ident table = table
   | otherwise =
       table ++ [SymbolTableEntry { idString = ident
-                                 , idType = IdVariable
+                                 , idType = idtype
                                  , returnType = vtype
-                                 , argumentTypes = argtypes}]
+                                 , argumentTypes = argtypes }]
