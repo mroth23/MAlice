@@ -1,5 +1,6 @@
 module MAlice.SemanticAnalysis.TypeChecker where
 
+import Data.Maybe
 import MAlice.Language.AST
 import MAlice.Language.SymbolTable
 import MAlice.Language.Types
@@ -36,25 +37,25 @@ testUBoolOp t =
 
 testBBoolOp :: Type -> Type -> TestResult
 testBBoolOp Boolean Boolean = succeed Boolean
-testBBoolOp t1 t2 = fail "two Boolean types on boolean operation" (t1, t2)
+testBBoolOp t1 t2 = fail "two boolean expressions on boolean operation" (t1, t2)
 
 testRelOp :: Type -> Type -> TestResult
 testRelOp t1 t2 =
   if (isOrd t1 && isOrd t2 && t1 == t2)
-  then succeed t1
-  else fail "two Ord types on relational operation" (t1, t2)
+  then succeed Boolean
+  else fail "two equal, ordered types on relational operation" (t1, t2)
 
 testEqOp :: Type -> Type -> TestResult
 testEqOp t1 t2 =
   if (isEq t1 && isEq t2 && t1 == t2)
-     then succeed t1
-          else fail "two equal, comparable types" (t1, t2)
+  then succeed Boolean
+  else fail "two equal, comparable types" (t1, t2)
 
 testAssignOp :: Type -> Type -> TestResult
 testAssignOp t1 t2 =
   if (t1 == t2)
   then succeed t1
-  else fail "two equal types" (t1, t2)
+  else fail "two compatible types on assignment operation" (t1, t2)
 
 inferType :: Expr -> MParser Type
 inferType ex =
@@ -87,7 +88,7 @@ inferType ex =
     EBkt expr    -> inferType expr
     ECall f _    -> do
       fdecl <- getDecl f
-      return $ returnType fdecl
+      return . fromJust . returnType $ fdecl
 
 getVarType :: String -> MParser Type
 getVarType var = do
@@ -107,6 +108,32 @@ getArrayType var = do
 
 getDecl :: String -> MParser SymbolTableEntry
 getDecl = undefined
+
+checkFuncCall :: Expr -> MParser ()
+checkFuncCall expr@(ECall f args) = do
+  f' <- liftM (lookupInTables f) $ getSymbolTables
+  case idType (fromJust f') of
+    IdFunction -> checkArgs args (argumentTypes . fromJust $ f') f
+    k -> logError . InvalidCalleeError $ f ++ " is of kind " ++ show k
+
+checkArgs :: ActualParams -> [Type] -> String -> MParser ()
+checkArgs aps ts name = do
+  ps <- inferAParamTypes aps
+  if (and $ zipWith (==) ts ps)
+    then return ()
+    else logError . CallTypeError $
+         name ++ " expects " ++ (unwords . map show $ ts) ++
+         ", got" ++ (unwords . map show $ ps)
+
+inferAParamTypes :: ActualParams -> MParser [Type]
+inferAParamTypes (APList aps) =
+  mapM inferType aps
+
+inferFParamTypes :: FormalParams -> MParser [Type]
+inferFParamTypes (FPList fps) =
+  return $ map getTypeFromFP fps
+  where
+    getTypeFromFP (Param t _) = t
 
 inferUnary :: (Type -> TestResult) -> Expr -> MParser Type
 inferUnary test e1 = do
