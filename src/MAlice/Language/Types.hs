@@ -4,7 +4,14 @@ module MAlice.Language.Types where
    but they are necessary for type checking -}
 data Type =
   Number | Letter | Sentence | Boolean | RefType Type
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Type where
+  show Number = "Number"
+  show Letter = "Letter"
+  show Sentence = "Sentence"
+  show Boolean = "Boolean"
+  show (RefType t) = "Spider " ++ show t
 
 -- Returns True if the type supports (==) comparison
 isEq :: Type -> Bool

@@ -14,7 +14,12 @@ data SymbolTableEntry =
 
 data IdentifierType =
   IdVariable | IdFunction | IdProcedure
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show IdentifierType where
+  show IdVariable = "Variable"
+  show IdFunction = "Function"
+  show IdProcedure = "Procedure"
 
 type ArgTypes = [Type]
 
