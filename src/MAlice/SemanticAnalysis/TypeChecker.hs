@@ -129,7 +129,7 @@ getArrayType var = do
     case t' of
       (RefType t'') -> return (Just t'')
       _             -> (logError . TypeError $
-                        "expected reference (array) type, got " ++ show t)
+                        "Expected reference (array) type, got " ++ show t)
                        >> return Nothing
 
 -- |Checks that a function call is to a function identifier and has the right
@@ -206,18 +206,18 @@ checkInput (EId var) = do
   v <- getIdType var IdVariable
   maybeCheck (return ()) v $ \v' ->
     case v' of
-      (RefType _) -> logError . TypeError $ "can't read in to reference type"
+      (RefType _) -> logError . TypeError $ "Can't read in to reference type"
       _           -> return ()
 
 checkInput (EArrRef arr _) = do
   atype <- getArrayType arr
   maybeCheck (return ()) atype $ \atype' ->
     case atype' of
-      (RefType _) -> logError . TypeError $ "can't read in to reference type"
+      (RefType _) -> logError . TypeError $ "Can't read in to reference type"
       _           -> return ()
 
 checkInput _ =
-  logError . TypeError $ "can only read in to variables or array elements"
+  logError . TypeError $ "Can only read in to variables or array elements"
 
 -- |Returns a list of the types of actual parameters
 -- (i.e. a list of expressions)
@@ -268,10 +268,11 @@ inferBinary test e1 e2 = do
 checkExpr :: Type -> Expr -> MParser ()
 checkExpr expected expr = do
   actual <- inferType expr
-  if (Just expected) == actual
+  maybeCheck (return ()) actual $ \actual' ->
+    if expected == actual'
     then return ()
     else logError . TypeError $
-         "expected " ++ show expected ++ ", got " ++ show actual
+         "Expected " ++ show expected ++ ", got " ++ show actual
 
 -- |Checks whether the given expression can be returned in the current context,
 -- i.e. whether the expression is inside a function of the same type.

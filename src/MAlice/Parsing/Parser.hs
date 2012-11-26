@@ -4,10 +4,10 @@ module MAlice.Parsing.Parser
        ) where
 
 import Control.Monad
-import Text.ParserCombinators.Parsec hiding (spaces)
-import Text.ParserCombinators.Parsec.Expr
-import Text.ParserCombinators.Parsec.Language
-import qualified Text.ParserCombinators.Parsec.Token as T
+import Text.Parsec hiding (spaces)
+import Text.Parsec.Expr
+import Text.Parsec.Language
+import qualified Text.Parsec.Token as T
 
 import MAlice.Parsing.ParserState
 import MAlice.Language.AST
@@ -153,13 +153,13 @@ decl = lexeme (
 -- |Parses the parameters of a method as they appear in its declaration.
 -- Parameters are a comma separated list of <type> <identifier> lexemes.
 formalParams :: MParser FormalParams
-formalParams = (try . lexeme $ do
+formalParams = (try $ do
   ps <- parens $ commaSep formalParam
   return $ FPList ps) <?> "formal parameter list"
 
 -- |A single parameter as it appears in the formal parameter list.
 formalParam :: MParser FormalParam
-formalParam = (try . lexeme $ do
+formalParam = (lexeme $ do
   t <- vtype
   var <- identifier
   return $ Param t var) <?> "formal parameter"
@@ -168,7 +168,7 @@ formalParam = (try . lexeme $ do
 -- be empty, contain a compound statement, or a number of declarations followed
 -- by a compound statement.
 body :: MParser Body
-body = try . lexeme $ do {
+body = lexeme $ do {
     reserved "opened"
   ; (do { reserved "closed"
         ; return EmptyBody })        <|>
@@ -184,7 +184,7 @@ body = try . lexeme $ do {
   }
 
 -- |Parses a compound statement. Compound statements consist of at least one
--- 'statement'.
+-- 'statement'. Uses look-ahead because many1 is a primitive parser combinator.
 compoundStmt :: MParser CompoundStmt
 compoundStmt = (try . lexeme $ do
   ss <- many1 stmt
@@ -206,7 +206,8 @@ nullStmt = do
   return SNull <?> "null statement"
 
 -- |Parses a procedure call statement. Checks whether the called identifier
--- actually refers to a procedure.
+-- actually refers to a procedure. Uses look-ahead so no input is consumed
+-- in case the parse fails, as identifiers can start off with expressions too.
 idStmt :: MParser Stmt
 idStmt = (try $ do
    f <- identifier

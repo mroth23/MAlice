@@ -2,14 +2,13 @@ module MAlice.Parsing.ParserState where
 
 import MAlice.Language.Types
 import MAlice.Language.SymbolTable
-import Text.ParserCombinators.Parsec.Prim (GenParser (..), getPosition)
+import Text.Parsec.Prim (Parsec (..), getPosition)
 import Text.Parsec.Pos (SourcePos(..))
-import Text.ParserCombinators.Parsec (getState, updateState)
+import Text.Parsec (getState, updateState)
 import Control.Monad (liftM)
 
--- |A standard Parser from Text.ParserCombinators.Parsec.Prim with
--- our custom parser state
-type MParser a = GenParser Char ParserState a
+-- |A standard Parser from Text.Parsec.Prim with our custom parser state
+type MParser a = Parsec String ParserState a
 
 -- |The state passed around by the parser
 data ParserState =
