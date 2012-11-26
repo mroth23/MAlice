@@ -23,7 +23,7 @@ mparse code name = do
     Right (ast, st) ->
       case errors . errorList $ st of
         [] -> Right ast
-        el -> Left $ "Error(s):\n" ++ show (errorList st)
+        el -> Left $ show (errorList st)
 
 -- |Some basic definitions for the MAlice language
 maliceDef =

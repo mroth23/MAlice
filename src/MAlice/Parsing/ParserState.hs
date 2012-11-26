@@ -34,7 +34,9 @@ newtype SemanticErrors =
 instance Show SemanticErrors where
   -- Prints all errors contained in the data type line by line
   show =
-    concatMap (\(err, pos) -> "In " ++ show pos ++ ", " ++ show err ++ "\n") .
+    concatMap (\(err, pos) ->
+                "Semantic error in " ++ show pos
+                ++ ":\n"++ show err ++ "\n") .
     errors
 
 -- |The different kinds of semantic errors that can occur, each has space for
