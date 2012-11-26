@@ -8,7 +8,7 @@ import Text.ParserCombinators.Parsec (getState, updateState)
 import Control.Monad (liftM)
 
 -- |A standard Parser from Text.ParserCombinators.Parsec.Prim with
--- out custom parser state
+-- our custom parser state
 type MParser a = GenParser Char ParserState a
 
 -- |The state passed around by the parser
@@ -29,12 +29,13 @@ initState =
 newtype SemanticErrors =
   SemanticErrors { errors :: [(SemanticError, SourcePos)] }
 
--- This is newtype so we can override the show instance
+-- This is newtype so we can make a show instance
 -- without language extensions
 instance Show SemanticErrors where
   -- Prints all errors contained in the data type line by line
   show =
-    concatMap (\(err, pos) -> show pos ++ ", " ++ show err ++ "\n") . errors
+    concatMap (\(err, pos) -> "In " ++ show pos ++ ", " ++ show err ++ "\n") .
+    errors
 
 -- |The different kinds of semantic errors that can occur, each has space for
 -- a custom message String
@@ -64,7 +65,7 @@ instance Show SemanticError where
   show (EntryPointError msg) =
     "Program entry point error: " ++ msg
 
--- |Logs an error to the parser state
+-- |Logs an error to the parser state together with the current position
 logError :: SemanticError -> MParser ()
 logError perr = do
   st <- getState

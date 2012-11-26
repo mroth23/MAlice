@@ -22,6 +22,7 @@ isEq _      = False
 -- Returns True if the type is numeric
 isNum :: Type -> Bool
 isNum Number = True
+isNum Letter = True
 isNum _      = False
 
 -- Returns True if the type supports relational comparison

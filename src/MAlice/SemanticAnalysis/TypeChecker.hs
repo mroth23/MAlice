@@ -25,7 +25,8 @@ testUNumOp t =
   then succeed t
   else fail "a numeric type" t
 
--- |Check the type for a binary numerical operation
+-- |Check the type for a binary numerical operation. Types need to match
+-- and be numerical.
 testBNumOp :: Type -> Type -> TestResult
 testBNumOp t1 t2 =
   if (isNum t1 && isNum t2 && t1 == t2)
@@ -230,7 +231,7 @@ inferBinary test e1 e2 = do
     Right t  -> return t
     Left msg -> (logError . TypeError $ msg) >> return t1
 
--- |Check if an expression has the expected type, if not log an error.
+-- |Checks if an expression has the expected type, if not an error is logged.
 checkExpr :: Type -> Expr -> MParser ()
 checkExpr expected expr = do
   actual <- inferType expr
