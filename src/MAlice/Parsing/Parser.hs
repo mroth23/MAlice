@@ -15,6 +15,7 @@ import MAlice.Language.SymbolTable
 import MAlice.Language.Types
 import MAlice.SemanticAnalysis.TypeChecker
 
+-- |Parses MAlice code and returns a list of errors or the AST
 mparse :: String -> String -> Either String Program
 mparse code name = do
   case (runParser maliceParse initState name code) of
@@ -24,6 +25,7 @@ mparse code name = do
         [] -> Right ast
         el -> Left $ "Error(s):\n" ++ show (errorList st)
 
+-- |Some basic definitions for the MAlice language
 maliceDef =
   emptyDef { T.commentStart = ""
            , T.commentEnd = ""
@@ -43,9 +45,11 @@ maliceDef =
              , "&&", "||", "!", "~", "^", "|", "&"]
            }
 
+-- |The token parser created from the definition
 lexer :: T.TokenParser ParserState
 lexer = T.makeTokenParser maliceDef
 
+-- |Some lexeme parsers that are used in the program
 identifier = T.identifier    lexer -- parses an identifier
 reserved   = T.reserved      lexer -- parses a reserved name
 reservedOp = T.reservedOp    lexer -- parses an operator

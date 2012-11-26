@@ -14,43 +14,52 @@ type TestResult = Either String Type
 succeed :: Type -> TestResult
 succeed = Right
 
+-- |Indicates an error during type-checking of an expression
 fail :: (Show a) => String -> a -> TestResult
 fail s t = Left ("Expected " ++ s ++ ", got " ++ show t)
 
+-- |Check the type for a unary numerical operation
 testUNumOp :: Type -> TestResult
 testUNumOp t =
   if (isNum t)
   then succeed t
   else fail "a numeric type" t
 
+-- |Check the type for a binary numerical operation
 testBNumOp :: Type -> Type -> TestResult
 testBNumOp t1 t2 =
   if (isNum t1 && isNum t2 && t1 == t2)
   then succeed t1
   else fail "numeric types on binary numeric operation" (t1, t2)
 
+-- |Check the type for a unary boolean operation
 testUBoolOp :: Type -> TestResult
 testUBoolOp t =
   case t of
     Boolean -> succeed Boolean
     _       -> fail "type Boolean" t
 
+-- |Check the type for a binary boolean operation
 testBBoolOp :: Type -> Type -> TestResult
 testBBoolOp Boolean Boolean = succeed Boolean
 testBBoolOp t1 t2 = fail "two boolean expressions on boolean operation" (t1, t2)
 
+-- |Check the type for a relational operation
 testRelOp :: Type -> Type -> TestResult
 testRelOp t1 t2 =
   if (isOrd t1 && isOrd t2 && t1 == t2)
   then succeed Boolean
   else fail "two equal, ordered types on relational operation" (t1, t2)
 
+-- |Check the type for an equality test
 testEqOp :: Type -> Type -> TestResult
 testEqOp t1 t2 =
   if (isEq t1 && isEq t2 && t1 == t2)
   then succeed Boolean
   else fail "two equal, comparable types" (t1, t2)
 
+-- |Check the type for an assignment operation. Reference types can't be
+-- assigned to, all other types accept assignments from equal types.
 testAssignOp :: Type -> Type -> TestResult
 testAssignOp (RefType _) _ =
   Left "can't assign a to a reference type (const)"
@@ -59,6 +68,7 @@ testAssignOp t1 t2 =
   then succeed t1
   else fail "two compatible types on assignment operation" (t1, t2)
 
+-- |Infers the type of an expression.
 inferType :: Expr -> MParser Type
 inferType ex =
   case ex of
@@ -90,6 +100,9 @@ inferType ex =
     EBkt expr    -> inferType expr
     ECall f args -> getIdType f IdFunction
 
+-- |Finds the type of an identifier. If it's not found or isn't of the kind
+-- IdVariable, errors are logged and a default type is returned so type checking
+-- can continue.
 getIdType :: String -> IdentifierType -> MParser Type
 getIdType var expected = do
   v <- findGlobalIdentifier var
@@ -101,6 +114,8 @@ getIdType var expected = do
       else (logError . InvalidIdKindError $ var ++ " is of kind " ++
            show (idType e) ++ ", expected " ++ show expected) >> return Number
 
+-- |Finds the item type of an array. If the identifier doesn't refer to an array
+-- , an error is logged.
 getArrayType :: String -> MParser Type
 getArrayType var = do
   t <- getIdType var IdVariable
@@ -110,12 +125,17 @@ getArrayType var = do
                     "expected reference (array) type, got " ++ show t)
                     >> return t
 
+-- |Checks that a function call is to a function identifier and has the right
+-- number and types of arguments.
 checkFuncCall :: String -> ActualParams -> MParser ()
 checkFuncCall = checkCall IdFunction
 
+-- |Checks that a procedure call is to a procedure identifier and has the right
+-- number and types of arguments.
 checkProcCall :: String -> ActualParams -> MParser ()
 checkProcCall = checkCall IdProcedure
 
+-- |Helper function to type-check method calls.
 checkCall :: IdentifierType -> String -> ActualParams -> MParser ()
 checkCall idtype f args =
   withIdKindCheck idtype f $ \t -> checkArgs args t
@@ -140,6 +160,7 @@ withIdExistenceCheck f success = do
     Nothing -> logError . UnknownIdentifierError $ f
     Just e -> success e
 
+-- |Checks an assignment between two expressions for validity.
 checkAssignment :: Expr -> Expr -> MParser ()
 checkAssignment e1 e2 = do
   t1 <- inferType e1
@@ -148,6 +169,9 @@ checkAssignment e1 e2 = do
     Right _  -> return ()
     Left err -> logError . TypeError $ err
 
+-- |Checks whether the argument list given for a method matches its definition.
+-- This function is only called with 'withIdKindCheck', so it doesn't have to
+-- do any further safety checks.
 checkArgs :: ActualParams -> SymbolTableEntry -> MParser ()
 checkArgs aps f = do
   ps <- inferAParamTypes aps
@@ -158,6 +182,7 @@ checkArgs aps f = do
          (idString f) ++ " expects " ++ (unwords . map show $ ts) ++
          ", got " ++ (unwords . map show $ ps)
 
+-- |Checks whether the given expression can be read into.
 checkInput :: Expr -> MParser ()
 checkInput (EId var) = do
   v <- getIdType var IdVariable
@@ -172,16 +197,22 @@ checkInput (EArrRef arr _) = do
 checkInput _ =
   logError . TypeError $ "can only read in to variables or array elements"
 
+-- |Returns a list of the types of actual parameters
+-- (i.e. a list of expressions)
 inferAParamTypes :: ActualParams -> MParser [Type]
 inferAParamTypes (APList aps) =
   mapM inferType aps
 
+-- |Returns a list of the types of formal parameters
+-- (i.e. a list of <type><identifier> lexemes)
 inferFParamTypes :: FormalParams -> MParser [Type]
 inferFParamTypes (FPList fps) =
   return $ map getTypeFromFP fps
   where
     getTypeFromFP (Param t _) = t
 
+-- |Helper function used to type-check unary expressions.
+-- To be used in conjunction with any of the testU##### functions.
 inferUnary :: (Type -> TestResult) -> Expr -> MParser Type
 inferUnary test e1 = do
   t1 <- inferType e1
@@ -189,6 +220,8 @@ inferUnary test e1 = do
     Right t  -> return t
     Left msg -> (logError . TypeError $ msg) >> return t1
 
+-- |Helper function used to type-check binary expressions.
+-- To be used in conjunction with any of the testB##### functions.
 inferBinary :: (Type -> Type -> TestResult) -> Expr -> Expr -> MParser Type
 inferBinary test e1 e2 = do
   t1 <- inferType e1
@@ -197,6 +230,7 @@ inferBinary test e1 e2 = do
     Right t  -> return t
     Left msg -> (logError . TypeError $ msg) >> return t1
 
+-- |Check if an expression has the expected type, if not log an error.
 checkExpr :: Type -> Expr -> MParser ()
 checkExpr expected expr = do
   actual <- inferType expr
@@ -205,6 +239,8 @@ checkExpr expected expr = do
     else logError . TypeError $
          "expected " ++ show expected ++ ", got " ++ show actual
 
+-- |Checks whether the given expression can be returned in the current context,
+-- i.e. whether the expression is inside a function of the same type.
 checkReturnType :: Expr -> MParser ()
 checkReturnType e = do
   f <- getCurrentScope
@@ -236,12 +272,18 @@ enterMethod f rtype idtype fps@(FPList fpl) = do
 exitMethod :: MParser ()
 exitMethod = removeSymbolTable
 
+-- |Enters a new code block by adding a symbol table with an empty scope name.
+-- This is only used for blocks inside functions, and prevents them from
+-- returning values.
 enterBlock :: MParser ()
 enterBlock = newSymbolTable ""
 
+-- |Exits a local block.
 exitBlock :: MParser ()
 exitBlock = removeSymbolTable
 
+-- |Checks whether the program has a valid entry point,
+-- i.e. a procedure 'hatta'.
 checkEntryPoint :: MParser ()
 checkEntryPoint = do
   mainFunc <- findGlobalIdentifier "hatta"
