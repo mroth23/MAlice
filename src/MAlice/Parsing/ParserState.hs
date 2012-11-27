@@ -38,7 +38,7 @@ instance Show SemanticErrors where
   show =
     concatMap (\(err, pos, inp) ->
                 "Semantic error in " ++ show pos
-                ++ ":\n"++ inp ++ "\n" ++ show err ++ "\n") .
+                ++ ":\n"++ (head . lines $ inp) ++ "\n" ++ show err ++ "\n") .
     errors
 
 -- |Data type used in 'ParserState' to store semantic warnings
@@ -50,7 +50,7 @@ instance Show SemanticWarnings where
   show =
     concatMap (\(wrn, pos, inp) ->
                 "Warning in " ++ show pos
-                ++ ":\n"++ inp ++ "\n" ++ show wrn ++ "\n") .
+                ++ ":\n"++ (head . lines $ inp) ++ "\n" ++ show wrn ++ "\n") .
     warnings
 
 -- |The different kinds of semantic errors that can occur, each has space for
