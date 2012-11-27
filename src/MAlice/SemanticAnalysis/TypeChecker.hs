@@ -147,6 +147,19 @@ checkCall :: IdentifierType -> String -> ActualParams -> MParser ()
 checkCall idtype f args =
   withIdKindCheck idtype f $ \t -> checkArgs args t
 
+-- |Checks whether the argument list given for a method matches its definition.
+-- This function is only called with 'withIdKindCheck', so it doesn't have to
+-- do any further safety checks.
+checkArgs :: ActualParams -> SymbolTableEntry -> MParser ()
+checkArgs aps f = do
+  ps <- inferAParamTypes aps
+  let ts = map Just $ argumentTypes f
+  if ts == ps
+    then return ()
+    else logError . CallTypeError $
+         (idString f) ++ " expects " ++ (unwords . map show $ ts) ++
+         ", got " ++ (unwords . map show $ ps)
+
 -- |Checks whether an identifier is of a specified kind. Also checks whether the
 --  identifier exists by means of 'withIdExistenceCheck'.
 withIdKindCheck :: IdentifierType -> String ->
@@ -186,19 +199,6 @@ checkAssignment' t1 e2 = do
     case testAssignOp t1' t2' of
       Right _  -> return ()
       Left err -> logError . TypeError $ err
-
--- |Checks whether the argument list given for a method matches its definition.
--- This function is only called with 'withIdKindCheck', so it doesn't have to
--- do any further safety checks.
-checkArgs :: ActualParams -> SymbolTableEntry -> MParser ()
-checkArgs aps f = do
-  ps <- inferAParamTypes aps
-  let ts = map Just $ argumentTypes f
-  if (and $ zipWith (==) ts ps)
-    then return ()
-    else logError . CallTypeError $
-         (idString f) ++ " expects " ++ (unwords . map show $ ts) ++
-         ", got " ++ (unwords . map show $ ps)
 
 -- |Checks whether the given expression can be read into.
 checkInput :: Expr -> MParser ()
