@@ -2,7 +2,7 @@ module MAlice.Parsing.ParserState where
 
 import MAlice.Language.Types
 import MAlice.Language.SymbolTable
-import Text.ParserCombinators.Parsec.Prim (GenParser (..), getPosition)
+import Text.ParserCombinators.Parsec.Prim (GenParser(..), getPosition, getInput)
 import Text.Parsec.Pos (SourcePos(..))
 import Text.ParserCombinators.Parsec (getState, updateState)
 import Control.Monad (liftM)
@@ -14,6 +14,7 @@ type MParser a = GenParser Char ParserState a
 -- |The state passed around by the parser
 data ParserState =
   ParserState { errorList :: SemanticErrors
+              , warnList :: SemanticWarnings
               , symTables :: [SymbolTable]
               , scopes :: [String] }
 
@@ -22,22 +23,35 @@ data ParserState =
 initState :: ParserState
 initState =
   ParserState { errorList = SemanticErrors { errors = [] }
+              , warnList = SemanticWarnings { warnings = [] }
               , symTables = [[]]
               , scopes = [] }
 
 -- |Data type used in 'ParserState' to store semantic errors
 newtype SemanticErrors =
-  SemanticErrors { errors :: [(SemanticError, SourcePos)] }
+  SemanticErrors { errors :: [(SemanticError, SourcePos, String)] }
 
 -- This is newtype so we can make a show instance
 -- without language extensions
 instance Show SemanticErrors where
   -- Prints all errors contained in the data type line by line
   show =
-    concatMap (\(err, pos) ->
+    concatMap (\(err, pos, inp) ->
                 "Semantic error in " ++ show pos
-                ++ ":\n"++ show err ++ "\n") .
+                ++ ":\n"++ inp ++ "\n" ++ show err ++ "\n") .
     errors
+
+-- |Data type used in 'ParserState' to store semantic warnings
+newtype SemanticWarnings =
+  SemanticWarnings { warnings :: [(SemanticWarning, SourcePos, String)] }
+
+instance Show SemanticWarnings where
+  -- Prints all warnings contained in the data type line by line
+  show =
+    concatMap (\(wrn, pos, inp) ->
+                "Warning in " ++ show pos
+                ++ ":\n"++ inp ++ "\n" ++ show wrn ++ "\n") .
+    warnings
 
 -- |The different kinds of semantic errors that can occur, each has space for
 -- a custom message String
@@ -67,14 +81,36 @@ instance Show SemanticError where
   show (EntryPointError msg) =
     "Program entry point error: " ++ msg
 
+data SemanticWarning =
+  FunctionReturnPathWarning String |
+  IdInitialisationWarning   String
+
+instance Show SemanticWarning where
+  show (FunctionReturnPathWarning ident) =
+    "Function " ++ ident ++ " might not return a value on all code paths"
+  show (IdInitialisationWarning ident) =
+    "Variable " ++ ident ++ " might not be initialised on all code paths" ++
+    ", this may cause a runtime error"
+
 -- |Logs an error to the parser state together with the current position
 logError :: SemanticError -> MParser ()
 logError perr = do
   st <- getState
   pos <- getPosition
+  inp <- getInput
   let el = errorList st
-  let newEl = el { errors = errors el ++ [(perr, pos)]}
+  let newEl = el { errors = errors el ++ [(perr, pos, inp)]}
   updateState $ \st -> st { errorList = newEl }
+
+-- |Logs a warning to the parser state together with the current position
+logWarning :: SemanticWarning -> MParser ()
+logWarning perr = do
+  st <- getState
+  pos <- getPosition
+  inp <- getInput
+  let el = warnList st
+  let newEl = el { warnings = warnings el ++ [(perr, pos, inp)]}
+  updateState $ \st -> st { warnList = newEl }
 
 -- |Adds a new symbol table for a scope with a given name
 newSymbolTable :: String -> MParser ()

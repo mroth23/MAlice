@@ -314,7 +314,9 @@ exitMethod = removeSymbolTable
 -- This is only used for blocks inside functions, and prevents them from
 -- returning values.
 enterBlock :: MParser ()
-enterBlock = newSymbolTable ""
+enterBlock = do
+  sc <- getCurrentScope
+  newSymbolTable sc
 
 -- |Exits a local block.
 exitBlock :: MParser ()
