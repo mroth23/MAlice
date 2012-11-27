@@ -341,11 +341,11 @@ stmt =
 -- |Parses a type name.
 vtype :: MParser Type
 vtype = lexeme $ (
-  (reserved "number" >> return Number)                    <|>
-  (reserved "letter" >> return Letter)                    <|>
-  (reserved "sentence" >> return Sentence)                <|>
-  do { reserved "spider"; t <- vtype; return $ RefType t } <?>
-  "valid type name" )
+  (reserved "number"   >> return Number)   <|>
+  (reserved "letter"   >> return Letter)   <|>
+  (reserved "sentence" >> return Sentence) <|>
+  (reserved "spider" >> vtype >>= return . RefType) <?>
+  "valid type name")
 
 -- |Builds the expression parser for arithmetic and logic expressions
 expr :: MParser Expr
@@ -353,24 +353,29 @@ expr =
   buildExpressionParser opTable exprTerm
 
 -- |The operator table that specifies the precedences and associativities
--- of the operators.
+-- of the operators. It is represented internally as a list of lists of
+-- operators with the same precedence.
 opTable =
-  [ [ prefix "-" (ENegate), prefix "+" (EPositive)]
-  , [ prefix "~" (EInv)   , prefix "!" (ENot) ]
-  , [ opL "|"  (EBOr) ]
-  , [ opL "^"  (EBXor)]
-  , [ opL "&"  (EBAnd)]
-  , [ opL "+"  (EPlus), opL "-" (EMinus) ]
-  , [ opL "*"  (EMult), opL "/" (EDiv)
-    , opL "%"  (EMod)
-    ]
-  , [ opL "==" (EEq)  , opL "!=" (ENEq) ]
-  , [ opL ">"  (EGT)  , opL ">=" (EGTE)
-    , opL "<=" (ELTE) , opL "<" (ELT)
-    ]
-  , [ opL "||" (ELOr) ]
-  , [ opL "&&" (ELAnd)]
-  ]
+  [ [ prefix "-"  (ENegate)
+    , prefix "+"  (EPositive) ]
+  , [ prefix "~"  (EInv)
+    , prefix "!"  (ENot)      ]
+  , [ opL    "|"  (EBOr)      ]
+  , [ opL    "^"  (EBXor)     ]
+  , [ opL    "&"  (EBAnd)     ]
+  , [ opL    "+"  (EPlus)
+    , opL    "-"  (EMinus)    ]
+  , [ opL    "*"  (EMult)
+    , opL    "/"  (EDiv)
+    , opL    "%"  (EMod)      ]
+  , [ opL    "==" (EEq)
+    , opL    "!=" (ENEq)      ]
+  , [ opL    ">"  (EGT)
+    , opL    ">=" (EGTE)
+    , opL    "<=" (ELTE)
+    , opL    "<"  (ELT)       ]
+  , [ opL    "||" (ELOr)      ]
+  , [ opL    "&&" (ELAnd)     ] ]
   where
     prefix c f =
       Prefix (reservedOp c >> return f)
