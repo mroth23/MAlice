@@ -294,7 +294,7 @@ ifElseStmt = (do
   c2 <- compoundStmt
   reserved "because"; reserved "Alice"; reserved "was"
   reserved "unsure"; reserved "which"
-  return $ SIf [(e, c1), (ENot e, c2)]) <?> "if/else block"
+  return $ SIf [If e c1, Else c2]) <?> "if/else block"
 
 -- |Parses an if/else if block and checks that every condition is a valid
 -- boolean expression.
@@ -313,31 +313,28 @@ ifElseIfStmt = do {
                ; checkExpr Boolean e
                ; reserved "so"
                ; cst' <- compoundStmt
-               ; return (e', cst')}))
+               ; return $ If e' cst'}))
   ; es <- readElseIfs
-  ; (do { reserved "because"; reserved "Alice"; reserved "was"
-        ; reserved "unsure"; reserved "which"
-        ; return . SIf $ (e, cst) : es })
-    <|>
-    (do { reserved "or"
+  ; elseClause <- option [] $ do {
+        ; reserved "or"
         ; elsest <- compoundStmt
-        ; reserved "because"; reserved "Alice"; reserved "was"
-        ; reserved "unsure"; reserved "which"
-        ; return $ SIf $ (e, cst) : es ++ [(EEq (EInt 0) (EInt 0), elsest)] }) }
+        ; return [Else elsest] }
+  ; reserved "because"; reserved "Alice"; reserved "was"
+  ; reserved "unsure"; reserved "which"
+  ; return $ SIf $ (If e cst) : es ++ elseClause }
   <?> "if/else if block"
-       -- TODO: Remove this hack for else (make if clause data type?)
 
 -- |Parses any of the statements above.
 stmt :: MParser Stmt
 stmt =
-  bodyStmt   <|>
-  nullStmt   <|>
-  idStmt     <|>
-  exprStmt   <|>
-  returnStmt <|>
-  inputStmt  <|>
-  loopStmt   <|>
-  ifElseStmt <|>
+  bodyStmt     <|>
+  nullStmt     <|>
+  idStmt       <|>
+  exprStmt     <|>
+  returnStmt   <|>
+  inputStmt    <|>
+  loopStmt     <|>
+  ifElseStmt   <|>
   ifElseIfStmt <?>
   "statement"
 
