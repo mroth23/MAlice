@@ -36,14 +36,16 @@ testBNumOp t1 t2 =
 -- |Check the type for a unary boolean operation
 testUBoolOp :: Type -> TestResult
 testUBoolOp t =
-  case t of
-    Boolean -> succeed Boolean
-    _       -> fail "type Boolean" t
+  if t == Boolean
+  then succeed Boolean
+  else fail "type Boolean" t
 
 -- |Check the type for a binary boolean operation
 testBBoolOp :: Type -> Type -> TestResult
-testBBoolOp Boolean Boolean = succeed Boolean
-testBBoolOp t1 t2 = fail "two boolean expressions on boolean operation" (t1, t2)
+testBBoolOp t1 t2 =
+  if (t1 == Boolean && t2 == Boolean)
+  then succeed Boolean
+  else fail "two boolean expressions on boolean operation" (t1, t2)
 
 -- |Check the type for a relational operation
 testRelOp :: Type -> Type -> TestResult
@@ -63,7 +65,7 @@ testEqOp t1 t2 =
 -- assigned to, all other types accept assignments from equal types.
 testAssignOp :: Type -> Type -> TestResult
 testAssignOp (RefType _) _ =
-  Left "can't assign a to a reference type (const)"
+  Left "can't assign to a reference type (constant)"
 testAssignOp t1 t2 =
   if (t1 == t2)
   then succeed t1
@@ -154,11 +156,13 @@ checkArgs :: ActualParams -> SymbolTableEntry -> MParser ()
 checkArgs aps f = do
   ps <- inferAParamTypes aps
   let ts = map Just $ argumentTypes f
+      show' (Nothing) = "void"
+      show' (Just a) = show a
   if ts == ps
     then return ()
     else logError . CallTypeError $
-         (idString f) ++ " expects " ++ (unwords . map show $ ts) ++
-         ", got " ++ (unwords . map show $ ps)
+         (idString f) ++ " expects " ++ (unwords . map show' $ ts) ++
+         ", got " ++ (unwords . map show' $ ps)
 
 -- |Checks whether an identifier is of a specified kind. Also checks whether the
 --  identifier exists by means of 'withIdExistenceCheck'.
@@ -247,8 +251,8 @@ maybeCheck2 _ a a' f = f (fromJust a) (fromJust a')
 inferUnary :: (Type -> TestResult) -> Expr -> MParser (Maybe Type)
 inferUnary test e1 = do
   t1 <- inferType e1
-  maybeCheck (return Nothing) t1 $ \t1 ->
-    case test t1 of
+  maybeCheck (return Nothing) t1 $ \t1' ->
+    case test t1' of
       Right t  -> return (Just t)
       Left msg -> (logError . TypeError $ msg) >> return Nothing
 
@@ -259,8 +263,8 @@ inferBinary :: (Type -> Type -> TestResult) ->
 inferBinary test e1 e2 = do
   t1 <- inferType e1
   t2 <- inferType e2
-  maybeCheck2 (return Nothing) t1 t2 $ \t1 t2 ->
-    case (test t1 t2) of
+  maybeCheck2 (return Nothing) t1 t2 $ \t1' t2' ->
+    case (test t1' t2') of
       Right t  -> return (Just t)
       Left msg -> (logError . TypeError $ msg) >> return Nothing
 

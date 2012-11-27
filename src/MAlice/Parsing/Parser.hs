@@ -78,7 +78,6 @@ decls :: MParser Decls
 decls = (lexeme $ do
   ps <- many1 decl
   return $ DeclList ps)
-  <?> "valid declaration"
 
 -- |Parses a variable declaration and adds the variable to the symbol table.
 varDecl :: MParser Decl
@@ -179,8 +178,7 @@ body = try . lexeme $ do {
     (do { ds <- decls
         ; cs <- compoundStmt
         ; reserved "closed"
-        ; return $ DeclBody ds cs }) <?>
-    "valid body block"
+        ; return $ DeclBody ds cs })
   }
 
 -- |Parses a compound statement. Compound statements consist of at least one
