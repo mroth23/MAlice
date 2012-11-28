@@ -78,7 +78,36 @@ data Expr =
   ECall Ident ActualParams |
   ENegate Expr |
   EPositive Expr
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Expr where
+  show (EPlus e1 e2) = show e1 ++ " + " ++ show e2
+  show (EMinus e1 e2) = show e1 ++ " - " ++ show e2
+  show (EMult e1 e2) = show e1 ++ " * " ++ show e2
+  show (EDiv e1 e2) = show e1 ++ " / " ++ show e2
+  show (EMod e1 e2) = show e1 ++ " % " ++ show e2
+  show (EBAnd e1 e2) = show e1 ++ " & " ++ show e2
+  show (EBOr e1 e2) = show e1 ++ " | " ++ show e2
+  show (EBXor e1 e2) = show e1 ++ " ^ " ++ show e2
+  show (ELAnd e1 e2) = show e1 ++ " && " ++ show e2
+  show (ELOr e1 e2) = show e1 ++ "||" ++ show e2
+  show (EGT e1 e2) = show e1 ++ " > " ++ show e2
+  show (EGTE e1 e2) = show e1 ++ " >= " ++ show e2
+  show (EEq e1 e2) = show e1 ++ " == " ++ show e2
+  show (ELTE e1 e2) = show e1 ++ " <= " ++ show e2
+  show (ELT e1 e2) = show e1 ++ " < " ++ show e2
+  show (ENEq e1 e2) = show e1 ++ " != " ++ show e2
+  show (ENot e1) = "!" ++ show e1
+  show (EInv e1) = "~" ++ show e1
+  show (EId ident) = ident
+  show (EString str) = show str
+  show (EInt int) = show int
+  show (EChar c) = show c
+  show (EArrRef ident e1) = ident ++ "[" ++ show e1 ++ "]"
+  show (EBkt e1) = "(" ++ show e1 ++ ")"
+  show (ENegate e1) = "-(" ++ show e1 ++ ")"
+  show (EPositive e1) = "+(" ++ show e1 ++ ")"
+  show (ECall ident params) = ident ++ "(" ++ show params ++ ")"
 
 data ActualParams =
   APList [Expr]

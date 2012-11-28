@@ -63,7 +63,7 @@ testEqOp t1 t2 =
 -- assigned to, all other types accept assignments from equal types.
 testAssignOp :: Type -> Type -> TestResult
 testAssignOp (RefType _) _ =
-  Left "can't assign a to a reference type (const)"
+  Left "can't assign to a reference type (constant)"
 testAssignOp t1 t2 =
   if (t1 == t2)
   then succeed t1
