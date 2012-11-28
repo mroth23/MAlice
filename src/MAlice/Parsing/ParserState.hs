@@ -28,6 +28,12 @@ import Text.Parsec.Pos (SourcePos(..))
 import Text.Parsec (getState, updateState)
 import Control.Monad (liftM)
 
+-- This module exists to hide most of the functionality of the parser from the
+-- type checker and other classes. They have methods to access and modify state,
+-- log errors and get some type constructors / synonyms. The actual
+-- implementation of e.g. the symbol table is unimportant and can be changed,
+-- without the need to modify other code.
+
 -- |A standard Parser from Text.Parsec.Prim with our custom parser state
 type MParser a = Parsec String ParserState a
 
@@ -59,7 +65,6 @@ newtype SemanticErrors =
 -- without language extensions
 instance Show SemanticErrors where
   -- Prints all errors contained in the data type line by line
-
   show =
     concatMap (
       \(err, pos, inp) ->
@@ -76,7 +81,7 @@ instance Show SemanticWarnings where
   show =
     concatMap (\(wrn, pos, inp) ->
                 "Warning in " ++ show pos
-                ++ ":\n" ++ show wrn ++ "\n\n") .
+                ++ ":\n" ++ show wrn ++ "\n") .
     warnings
 
 -- |The different kinds of semantic errors that can occur, each has space for
