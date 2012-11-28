@@ -36,14 +36,16 @@ testBNumOp t1 t2 =
 -- |Check the type for a unary boolean operation
 testUBoolOp :: Type -> TestResult
 testUBoolOp t =
-  case t of
-    Boolean -> succeed Boolean
-    _       -> fail "type Boolean" t
+  if t == Boolean
+  then succeed Boolean
+  else fail "type Boolean" t
 
 -- |Check the type for a binary boolean operation
 testBBoolOp :: Type -> Type -> TestResult
-testBBoolOp Boolean Boolean = succeed Boolean
-testBBoolOp t1 t2 = fail "two boolean expressions on boolean operation" (t1, t2)
+testBBoolOp t1 t2 =
+  if (t1 == Boolean && t2 == Boolean)
+  then succeed Boolean
+  else fail "two boolean expressions on boolean operation" (t1, t2)
 
 -- |Check the type for a relational operation
 testRelOp :: Type -> Type -> TestResult
@@ -147,6 +149,21 @@ checkCall :: IdentifierType -> String -> ActualParams -> MParser ()
 checkCall idtype f args =
   withIdKindCheck idtype f $ \t -> checkArgs args t
 
+-- |Checks whether the argument list given for a method matches its definition.
+-- This function is only called with 'withIdKindCheck', so it doesn't have to
+-- do any further safety checks.
+checkArgs :: ActualParams -> SymbolTableEntry -> MParser ()
+checkArgs aps f = do
+  ps <- inferAParamTypes aps
+  let ts = map Just $ argumentTypes f
+      show' (Nothing) = "void"
+      show' (Just a) = show a
+  if ts == ps
+    then return ()
+    else logError . CallTypeError $
+         (idString f) ++ " expects " ++ (unwords . map show' $ ts) ++
+         ", got " ++ (unwords . map show' $ ps)
+
 -- |Checks whether an identifier is of a specified kind. Also checks whether the
 --  identifier exists by means of 'withIdExistenceCheck'.
 withIdKindCheck :: IdentifierType -> String ->
@@ -186,19 +203,6 @@ checkAssignment' t1 e2 = do
     case testAssignOp t1' t2' of
       Right _  -> return ()
       Left err -> logError . TypeError $ err
-
--- |Checks whether the argument list given for a method matches its definition.
--- This function is only called with 'withIdKindCheck', so it doesn't have to
--- do any further safety checks.
-checkArgs :: ActualParams -> SymbolTableEntry -> MParser ()
-checkArgs aps f = do
-  ps <- inferAParamTypes aps
-  let ts = map Just $ argumentTypes f
-  if (and $ zipWith (==) ts ps)
-    then return ()
-    else logError . CallTypeError $
-         (idString f) ++ " expects " ++ (unwords . map show $ ts) ++
-         ", got " ++ (unwords . map show $ ps)
 
 -- |Checks whether the given expression can be read into.
 checkInput :: Expr -> MParser ()
@@ -247,8 +251,8 @@ maybeCheck2 _ a a' f = f (fromJust a) (fromJust a')
 inferUnary :: (Type -> TestResult) -> Expr -> MParser (Maybe Type)
 inferUnary test e1 = do
   t1 <- inferType e1
-  maybeCheck (return Nothing) t1 $ \t1 ->
-    case test t1 of
+  maybeCheck (return Nothing) t1 $ \t1' ->
+    case test t1' of
       Right t  -> return (Just t)
       Left msg -> (logError . TypeError $ msg) >> return Nothing
 
@@ -259,8 +263,8 @@ inferBinary :: (Type -> Type -> TestResult) ->
 inferBinary test e1 e2 = do
   t1 <- inferType e1
   t2 <- inferType e2
-  maybeCheck2 (return Nothing) t1 t2 $ \t1 t2 ->
-    case (test t1 t2) of
+  maybeCheck2 (return Nothing) t1 t2 $ \t1' t2' ->
+    case (test t1' t2') of
       Right t  -> return (Just t)
       Left msg -> (logError . TypeError $ msg) >> return Nothing
 
@@ -311,7 +315,9 @@ exitMethod = removeSymbolTable
 -- This is only used for blocks inside functions, and prevents them from
 -- returning values.
 enterBlock :: MParser ()
-enterBlock = newSymbolTable ""
+enterBlock = do
+  sc <- getCurrentScope
+  newSymbolTable sc
 
 -- |Exits a local block.
 exitBlock :: MParser ()
@@ -329,3 +335,56 @@ checkEntryPoint = do
       then return ()
       else logError . EntryPointError $ "'hatta' is declared as a " ++
            show (idType e) ++ ", not a procedure"
+
+checkReturnPath :: Body -> String -> MParser ()
+checkReturnPath (StmtBody cst) func =
+  if cReturns cst
+  then return ()
+  else logWarning . FunctionReturnPathWarning $ func
+checkReturnPath (DeclBody _ cst) func =
+  if cReturns cst
+  then return ()
+  else logWarning . FunctionReturnPathWarning $ func
+checkReturnPath EmptyBody func =
+  logWarning . EmptyFunctionWarning $ func
+
+cReturns :: CompoundStmt -> Bool
+cReturns (CSList csl) =
+  topLevelReturns || conditionalReturns
+  where
+    topLevelReturns    = hasTopLevelReturns csl
+    conditionalReturns = hasConditionalReturns csl
+
+hasTopLevelReturns :: [Stmt] -> Bool
+hasTopLevelReturns [] =
+  False
+hasTopLevelReturns (s : ss) =
+  case s of
+    SReturn _ -> True
+    _         -> hasTopLevelReturns ss
+
+hasConditionalReturns :: [Stmt] -> Bool
+hasConditionalReturns [] =
+  False
+hasConditionalReturns (s : ss) =
+  case s of
+    SBody (StmtBody cst) ->
+      (cReturns cst) || hasConditionalReturns ss
+    SBody (DeclBody _ cst) ->
+      (cReturns cst) || hasConditionalReturns ss
+    SIf ifs ->
+      ifReturns ifs || hasConditionalReturns ss
+    _ ->
+      hasConditionalReturns ss
+
+ifReturns :: [IfClause] -> Bool
+ifReturns ifs =
+  case last ifs of
+    Else _ -> all clauseReturns ifs
+    _      -> ifReturns $ ifs ++ [Else (CSList [SNull])]
+
+clauseReturns :: IfClause -> Bool
+clauseReturns (If _ cst) =
+  cReturns cst
+clauseReturns (Else cst) =
+  cReturns cst

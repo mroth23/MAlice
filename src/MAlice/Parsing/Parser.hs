@@ -22,8 +22,10 @@ mparse code name = do
     Left err -> Left ("Parse error in " ++ show err)
     Right (ast, st) ->
       case errors . errorList $ st of
-        [] -> Right ast
-        el -> Left $ show (errorList st)
+        [] -> case warnings . warnList $ st of
+                   [] -> Right ast
+                   wl -> Left . show $ warnList st
+        el -> Left . show $ errorList st
 
 -- |Some basic definitions for the MAlice language
 maliceDef =
@@ -62,12 +64,13 @@ charLit    = T.charLiteral   lexer -- parses char literal
 commaSep   = T.commaSep      lexer -- parses a comma separated list
 lexeme     = T.lexeme        lexer -- parses with a parser, ignoring whitespace
 
--- |Parses an alice source file and returns the AST and parser state.
+-- |Parses a MAlice source file and returns the AST and parser state.
 -- Whitespace is ignored, the parser then proceeds to the EOF. The existence
--- of a program entry point, the procedure 'hatta', is also checked.
+-- of a program entry point (the procedure 'hatta') is also checked.
 maliceParse :: MParser (Program, ParserState)
 maliceParse = do
-  ds <- (whiteSpace >> decls)
+  whiteSpace
+  ds <- decls
   eof
   checkEntryPoint
   finalState <- getState
@@ -78,7 +81,6 @@ decls :: MParser Decls
 decls = (lexeme $ do
   ps <- many1 decl
   return $ DeclList ps)
-  <?> "valid declaration"
 
 -- |Parses a variable declaration and adds the variable to the symbol table.
 varDecl :: MParser Decl
@@ -131,6 +133,7 @@ methodDecl =
             ; enterMethod f (Just t) IdFunction args
             ; b <- body
             ; exitMethod
+            ; checkReturnPath b f
             ; return $ FuncDecl f args t b }) <|>
         (do { reserved "looking-glass"
             ; f <- identifier
@@ -179,8 +182,7 @@ body = lexeme $ do {
     (do { ds <- decls
         ; cs <- compoundStmt
         ; reserved "closed"
-        ; return $ DeclBody ds cs }) <?>
-    "valid body block"
+        ; return $ DeclBody ds cs })
   }
 
 -- |Parses a compound statement. Compound statements consist of at least one
@@ -295,7 +297,7 @@ ifElseStmt = (do
   c2 <- compoundStmt
   reserved "because"; reserved "Alice"; reserved "was"
   reserved "unsure"; reserved "which"
-  return $ SIf [(e, c1), (ENot e, c2)]) <?> "if/else block"
+  return $ SIf [If e c1, Else c2]) <?> "if/else block"
 
 -- |Parses an if/else if block and checks that every condition is a valid
 -- boolean expression.
@@ -314,42 +316,39 @@ ifElseIfStmt = do {
                ; checkExpr Boolean e
                ; reserved "so"
                ; cst' <- compoundStmt
-               ; return (e', cst')}))
+               ; return $ If e' cst'}))
   ; es <- readElseIfs
-  ; (do { reserved "because"; reserved "Alice"; reserved "was"
-        ; reserved "unsure"; reserved "which"
-        ; return . SIf $ (e, cst) : es })
-    <|>
-    (do { reserved "or"
+  ; elseClause <- option [] $ do {
+        ; reserved "or"
         ; elsest <- compoundStmt
-        ; reserved "because"; reserved "Alice"; reserved "was"
-        ; reserved "unsure"; reserved "which"
-        ; return $ SIf $ (e, cst) : es ++ [(EEq (EInt 0) (EInt 0), elsest)] }) }
+        ; return [Else elsest] }
+  ; reserved "because"; reserved "Alice"; reserved "was"
+  ; reserved "unsure"; reserved "which"
+  ; return $ SIf $ (If e cst) : es ++ elseClause }
   <?> "if/else if block"
-       -- TODO: Remove this hack for else (make if clause data type?)
 
 -- |Parses any of the statements above.
 stmt :: MParser Stmt
 stmt =
-  bodyStmt   <|>
-  nullStmt   <|>
-  idStmt     <|>
-  exprStmt   <|>
-  returnStmt <|>
-  inputStmt  <|>
-  loopStmt   <|>
-  ifElseStmt <|>
+  bodyStmt     <|>
+  nullStmt     <|>
+  idStmt       <|>
+  exprStmt     <|>
+  returnStmt   <|>
+  inputStmt    <|>
+  loopStmt     <|>
+  ifElseStmt   <|>
   ifElseIfStmt <?>
   "statement"
 
 -- |Parses a type name.
 vtype :: MParser Type
 vtype = lexeme $ (
-  (reserved "number" >> return Number)                    <|>
-  (reserved "letter" >> return Letter)                    <|>
-  (reserved "sentence" >> return Sentence)                <|>
-  do { reserved "spider"; t <- vtype; return $ RefType t } <?>
-  "valid type name" )
+  (reserved "number"   >> return Number)   <|>
+  (reserved "letter"   >> return Letter)   <|>
+  (reserved "sentence" >> return Sentence) <|>
+  (reserved "spider" >> vtype >>= return . RefType) <?>
+  "valid type name")
 
 -- |Builds the expression parser for arithmetic and logic expressions
 expr :: MParser Expr
@@ -357,24 +356,29 @@ expr =
   buildExpressionParser opTable exprTerm
 
 -- |The operator table that specifies the precedences and associativities
--- of the operators.
+-- of the operators. It is represented internally as a list of lists of
+-- operators with the same precedence.
 opTable =
-  [ [ prefix "-" (ENegate), prefix "+" (EPositive)]
-  , [ prefix "~" (EInv)   , prefix "!" (ENot) ]
-  , [ opL "|"  (EBOr) ]
-  , [ opL "^"  (EBXor)]
-  , [ opL "&"  (EBAnd)]
-  , [ opL "+"  (EPlus), opL "-" (EMinus) ]
-  , [ opL "*"  (EMult), opL "/" (EDiv)
-    , opL "%"  (EMod)
-    ]
-  , [ opL "==" (EEq)  , opL "!=" (ENEq) ]
-  , [ opL ">"  (EGT)  , opL ">=" (EGTE)
-    , opL "<=" (ELTE) , opL "<" (ELT)
-    ]
-  , [ opL "||" (ELOr) ]
-  , [ opL "&&" (ELAnd)]
-  ]
+  [ [ prefix "-"  (ENegate)
+    , prefix "+"  (EPositive) ]
+  , [ prefix "~"  (EInv)
+    , prefix "!"  (ENot)      ]
+  , [ opL    "|"  (EBOr)      ]
+  , [ opL    "^"  (EBXor)     ]
+  , [ opL    "&"  (EBAnd)     ]
+  , [ opL    "+"  (EPlus)
+    , opL    "-"  (EMinus)    ]
+  , [ opL    "*"  (EMult)
+    , opL    "/"  (EDiv)
+    , opL    "%"  (EMod)      ]
+  , [ opL    "==" (EEq)
+    , opL    "!=" (ENEq)      ]
+  , [ opL    ">"  (EGT)
+    , opL    ">=" (EGTE)
+    , opL    "<=" (ELTE)
+    , opL    "<"  (ELT)       ]
+  , [ opL    "||" (ELOr)      ]
+  , [ opL    "&&" (ELAnd)     ] ]
   where
     prefix c f =
       Prefix (reservedOp c >> return f)

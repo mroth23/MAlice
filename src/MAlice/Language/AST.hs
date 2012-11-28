@@ -47,7 +47,12 @@ data Stmt =
   SInput Expr |
   SCall Ident ActualParams |
   SLoop Expr CompoundStmt |
-  SIf [(Expr, CompoundStmt)]
+  SIf [IfClause]
+  deriving (Eq, Show)
+
+data IfClause =
+  If Expr CompoundStmt |
+  Else CompoundStmt
   deriving (Eq, Show)
 
 data Expr =
