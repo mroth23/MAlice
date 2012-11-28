@@ -15,7 +15,9 @@ module MAlice.Parsing.ParserState
        , insertSymbol
        , getCurrentScope
        , getContext
-       , setContext )
+       , setContext
+       , setCPos
+       , getCPos )
 where
 
 import MAlice.Language.Types
@@ -35,7 +37,8 @@ data ParserState =
               , warnList :: SemanticWarnings
               , symTables :: [SymbolTable]
               , scopes :: [String]
-              , context :: String }
+              , context :: String
+              , customPos :: Maybe SourcePos }
 
 -- |The initial parser state with no errors, an empty global symbol table
 -- and no defined scopes
@@ -45,7 +48,8 @@ initState =
               , warnList = SemanticWarnings { warnings = [] }
               , symTables = [[]]
               , scopes = []
-              , context = "" }
+              , context = ""
+              , customPos = Nothing }
 
 -- |Data type used in 'ParserState' to store semantic errors
 newtype SemanticErrors =
@@ -117,7 +121,7 @@ instance Show SemanticWarning where
 logError :: SemanticError -> MParser ()
 logError perr = do
   st <- getState
-  pos <- getPosition
+  pos <- getCPos
   inp <- getContext
   let el = errorList st
   let newEl = el { errors = errors el ++ [(perr, pos, inp)]}
@@ -127,7 +131,7 @@ logError perr = do
 logWarning :: SemanticWarning -> MParser ()
 logWarning perr = do
   st <- getState
-  pos <- getPosition
+  pos <- getCPos
   inp <- getContext
   let el = warnList st
   let newEl = el { warnings = warnings el ++ [(perr, pos, inp)]}
@@ -183,6 +187,10 @@ getCurrentScope :: MParser String
 getCurrentScope =
   head `liftM` (scopes `liftM` getState)
 
+-- |Context string handling. This is used for error output. The context is a
+-- string description (sometimes in the form of PARSED code) of how the compiler
+-- understands the code which caused the error. This is not always exactly
+-- equivalent to the source code, and may have additional explanations.
 getContext :: MParser String
 getContext =
   context `liftM` getState
@@ -190,3 +198,27 @@ getContext =
 setContext :: String -> MParser ()
 setContext nc =
   updateState $ \st -> st { context = nc }
+
+-- |Allows to record a custom position used in error messages. For example, type
+-- checking is usually done after a statement / expression is fully parsed, so
+-- that parse errors show up before type errors. But the source position shown
+-- in the error message will then be after the statement (sometimes even on a
+-- new line). This allows us to circumvent this limitation.
+getCPos :: MParser (SourcePos)
+getCPos = do
+  st <- getState
+  case customPos st of
+    Nothing -> getPosition
+    Just !sp -> setCPos Nothing >> return sp
+
+-- A custom position is only read once, then cleared.
+
+-- |Records the current position for later use.
+recordPosition :: MParser ()
+recordPosition = do
+  curr <- getPosition
+  setCPos $ Just curr
+
+setCPos :: Maybe SourcePos -> MParser ()
+setCPos pos =
+  updateState $ \st -> st { customPos = pos }
