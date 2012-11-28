@@ -68,7 +68,7 @@ instance Show SemanticErrors where
   show =
     concatMap (
       \(err, pos, inp) ->
-      "Semantic error in " ++ show pos ++ ":\n> "++
+      "Semantic error in " ++ show pos ++ ":\n>\t "++
        inp ++ "\n" ++ show err ++ "\n\n") .
     errors
 
