@@ -37,8 +37,17 @@ executable compile
   main-is:
     MAlice/Console.hs
        
+  default-extensions:
+    DeriveDataTypeable,
+    FlexibleContexts,
+    FlexibleInstances,
+    FunctionalDependencies,
+    MultiParamTypeClasses,
+    Rank2Types
+
   build-depends:
     base             == 4.5.*,
+    ghc-prim,
     MAlice           == 0.1
 
 flag base4
@@ -230,14 +239,16 @@ library
                      src/cbits/cbits.c
   c-sources: 
   include-dirs:      src/include
-  includes:          fpstring.h, Typeable.h
-  install-includes:  fpstring.h, Typeable.h
+  includes:          fpstring.h
+  install-includes:  fpstring.h
 
   build-depends:
-    base >= 4
+    base >= 4,
+    ghc-prim,
+    integer-gmp
 
   cpp-options:
-    -DHAVE_DEEPSEQ
+    -DHAVE_DEEPSEQ -DINTEGER_GMP
   ghc-options:
     -Wall
     -O2
