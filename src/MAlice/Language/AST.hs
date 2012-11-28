@@ -120,7 +120,7 @@ instance Show Expr where
   show (EString str) = show str
   show (EInt int) = show int
   show (EChar c) = show c
-  show (EArrRef ident e1) = ident ++ "[" ++ show e1 ++ "]"
+  show (EArrRef ident e1) = ident ++ "'s (" ++ show e1 ++ ") piece"
   show (EBkt e1) = "(" ++ show e1 ++ ")"
   show (ENegate e1) = "-(" ++ show e1 ++ ")"
   show (EPositive e1) = "+(" ++ show e1 ++ ")"

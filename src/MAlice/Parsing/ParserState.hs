@@ -16,8 +16,8 @@ module MAlice.Parsing.ParserState
        , getCurrentScope
        , getContext
        , setContext
-       , setCPos
-       , getCPos )
+       , recordPosition
+       , clearPosition )
 where
 
 import MAlice.Language.Types
@@ -38,7 +38,7 @@ data ParserState =
               , symTables :: [SymbolTable]
               , scopes :: [String]
               , context :: String
-              , customPos :: Maybe SourcePos }
+              , customPos :: [SourcePos] }
 
 -- |The initial parser state with no errors, an empty global symbol table
 -- and no defined scopes
@@ -49,7 +49,7 @@ initState =
               , symTables = [[]]
               , scopes = []
               , context = ""
-              , customPos = Nothing }
+              , customPos = [] }
 
 -- |Data type used in 'ParserState' to store semantic errors
 newtype SemanticErrors =
@@ -208,17 +208,23 @@ getCPos :: MParser (SourcePos)
 getCPos = do
   st <- getState
   case customPos st of
-    Nothing -> getPosition
-    Just !sp -> setCPos Nothing >> return sp
-
--- A custom position is only read once, then cleared.
+    [] -> getPosition
+    (p:ps) -> return p
 
 -- |Records the current position for later use.
 recordPosition :: MParser ()
 recordPosition = do
+  st <- getState
   curr <- getPosition
-  setCPos $ Just curr
+  setCPos $ curr : (customPos st)
 
-setCPos :: Maybe SourcePos -> MParser ()
-setCPos pos =
-  updateState $ \st -> st { customPos = pos }
+clearPosition :: MParser ()
+clearPosition = do
+  st <- getState
+  case customPos st of
+    [] -> return ()
+    (_:ps) -> setCPos ps
+
+setCPos :: [SourcePos] -> MParser ()
+setCPos ps =
+  updateState $ \st -> st { customPos = ps }
