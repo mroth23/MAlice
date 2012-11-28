@@ -334,3 +334,56 @@ checkEntryPoint = do
       then return ()
       else logError . EntryPointError $ "'hatta' is declared as a " ++
            show (idType e) ++ ", not a procedure"
+
+checkReturnPath :: Body -> String -> MParser ()
+checkReturnPath (StmtBody cst) func =
+  if cReturns cst
+  then return ()
+  else logWarning . FunctionReturnPathWarning $ func
+checkReturnPath (DeclBody _ cst) func =
+  if cReturns cst
+  then return ()
+  else logWarning . FunctionReturnPathWarning $ func
+checkReturnPath EmptyBody func =
+  logWarning . EmptyFunctionWarning $ func
+
+cReturns :: CompoundStmt -> Bool
+cReturns (CSList csl) =
+  topLevelReturns || conditionalReturns
+  where
+    topLevelReturns    = hasTopLevelReturns csl
+    conditionalReturns = hasConditionalReturns csl
+
+hasTopLevelReturns :: [Stmt] -> Bool
+hasTopLevelReturns [] =
+  False
+hasTopLevelReturns (s : ss) =
+  case s of
+    SReturn _ -> True
+    _         -> hasTopLevelReturns ss
+
+hasConditionalReturns :: [Stmt] -> Bool
+hasConditionalReturns [] =
+  False
+hasConditionalReturns (s : ss) =
+  case s of
+    SBody (StmtBody cst) ->
+      (cReturns cst) || hasConditionalReturns ss
+    SBody (DeclBody _ cst) ->
+      (cReturns cst) || hasConditionalReturns ss
+    SIf ifs ->
+      ifReturns ifs || hasConditionalReturns ss
+    _ ->
+      hasConditionalReturns ss
+
+ifReturns :: [IfClause] -> Bool
+ifReturns ifs =
+  case last ifs of
+    Else _ -> all clauseReturns ifs
+    _      -> ifReturns $ ifs ++ [Else (CSList [SNull])]
+
+clauseReturns :: IfClause -> Bool
+clauseReturns (If _ cst) =
+  cReturns cst
+clauseReturns (Else cst) =
+  cReturns cst

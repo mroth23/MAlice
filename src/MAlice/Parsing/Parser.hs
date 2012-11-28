@@ -22,8 +22,10 @@ mparse code name = do
     Left err -> Left ("Parse error in " ++ show err)
     Right (ast, st) ->
       case errors . errorList $ st of
-        [] -> Right ast
-        el -> Left $ show (errorList st)
+        [] -> case warnings . warnList $ st of
+                   [] -> Right ast
+                   wl -> Left . show $ warnList st
+        el -> Left . show $ errorList st
 
 -- |Some basic definitions for the MAlice language
 maliceDef =
@@ -62,12 +64,13 @@ charLit    = T.charLiteral   lexer -- parses char literal
 commaSep   = T.commaSep      lexer -- parses a comma separated list
 lexeme     = T.lexeme        lexer -- parses with a parser, ignoring whitespace
 
--- |Parses an alice source file and returns the AST and parser state.
+-- |Parses a MAlice source file and returns the AST and parser state.
 -- Whitespace is ignored, the parser then proceeds to the EOF. The existence
--- of a program entry point, the procedure 'hatta', is also checked.
+-- of a program entry point (the procedure 'hatta') is also checked.
 maliceParse :: MParser (Program, ParserState)
 maliceParse = do
-  ds <- (whiteSpace >> decls)
+  whiteSpace
+  ds <- decls
   eof
   checkEntryPoint
   finalState <- getState
@@ -130,6 +133,7 @@ methodDecl =
             ; enterMethod f (Just t) IdFunction args
             ; b <- body
             ; exitMethod
+            ; checkReturnPath b f
             ; return $ FuncDecl f args t b }) <|>
         (do { reserved "looking-glass"
             ; f <- identifier

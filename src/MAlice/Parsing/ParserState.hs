@@ -50,7 +50,7 @@ instance Show SemanticWarnings where
   show =
     concatMap (\(wrn, pos, inp) ->
                 "Warning in " ++ show pos
-                ++ ":\n"++ (head . lines $ inp) ++ "\n" ++ show wrn ++ "\n") .
+                ++ ":\n" ++ show wrn ++ "\n") .
     warnings
 
 -- |The different kinds of semantic errors that can occur, each has space for
@@ -83,11 +83,14 @@ instance Show SemanticError where
 
 data SemanticWarning =
   FunctionReturnPathWarning String |
+  EmptyFunctionWarning      String |
   IdInitialisationWarning   String
 
 instance Show SemanticWarning where
   show (FunctionReturnPathWarning ident) =
     "Function " ++ ident ++ " might not return a value on all code paths"
+  show (EmptyFunctionWarning ident) =
+    "Function " ++ ident ++ " is empty and calling it may cause runtime errors"
   show (IdInitialisationWarning ident) =
     "Variable " ++ ident ++ " might not be initialised on all code paths" ++
     ", this may cause a runtime error"
