@@ -78,16 +78,20 @@ generateStmt (SBody body) regs
   = undefined
 generateStmt (SNull) regs
   = undefined
+-- expr1 must be (EId Ident)
 generateStmt (SAssign expr1 expr2) regs
   = undefined
+-- expr must be (EId Ident)
 generateStmt (SInc expr) regs
   = undefined
+-- expr must be (EId Ident)
 generateStmt (SDec expr) regs
   = undefined
 generateStmt (SReturn expr) regs
   = undefined
 generateStmt (SPrint expr) regs
   = undefined
+-- expr must be (EId Ident)
 generateStmt (SInput expr) regs
   = undefined
 generateStmt (SCall ident actualParams) regs
@@ -99,7 +103,7 @@ generateStmt (SIf ((expr, comStmt):rest)) regs
 
 generateExpr :: Expr -> [Register] -> [IO ()]
 generateExpr (EPlus expr1 expr2) regs
-  = undefined
+  = undefined 
 generateExpr (EMinus expr1 expr2) regs
   = undefined
 generateExpr (EMult expr1 expr2) regs
@@ -153,6 +157,27 @@ generateExpr (ENegate expr) regs
 generateExpr (EPositive expr) regs
   = undefined
 
+
+{- weight :: Expr -> Int
+weight (EInt _)    
+  = 1
+weight (EString _) 
+  = 1
+weight (EId _)     
+  = 1
+weight (EChar _)   
+  = 1
+weight (EArrRef _ expr)
+  = 1
+weight (ECall ident (APList exprs))
+  = min (map (weight) (exprs))
+weight (  expr)    
+  = weight expr
+weight (binary expr1 expr2)
+  = min [cost1, cost2]
+    where
+      cost1 = max [weight expr1, (weight expr2) + 1]
+      cost2 = max [(weight expr1) + 1, weight expr2] -}
 
 -- Generate code for producing parameters and push them right to left onto stack.
 generateActualParams :: [Expr] -> [Register] -> [IO ()]

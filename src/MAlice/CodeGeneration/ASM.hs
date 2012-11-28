@@ -9,12 +9,26 @@ data Register
   deriving (Show, Eq)
 
 data Instruction 
-  = Mov Register Register
-  | Push Register
-  | Pop Register
-  | Add Register Register
-  | Sub Register Register
+  = Mov   Register Register
+  | Push  Register
+  | Pop   Register
+  | Add   Register Register
+  | Sub   Register Register
+  | Mul   Register Register
+  | Div   Register Register
+  | Mod   Register Register -- Use DIV and find value in EDX
+  | Neg   Register
+  | Not   Register
+  | Or    Register Register
+  | And   Register Register
+  | Xor   Reggister Register
+  | Inc   Register
+  | Dec   Register
   | Colon String
+  | Jmp   String
+  | Cmp   Register Register
+  | Call  String
+  | Ret
   deriving (Show, Eq)
 
 type ImmVal = Word64
