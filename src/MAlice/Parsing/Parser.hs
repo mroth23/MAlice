@@ -1,6 +1,5 @@
 module MAlice.Parsing.Parser
        ( mparse
-       , MParser (..)
        ) where
 
 import Control.Monad
@@ -13,7 +12,9 @@ import MAlice.Parsing.ParserState
 import MAlice.Language.AST
 import MAlice.Language.SymbolTable
 import MAlice.Language.Types
-import MAlice.SemanticAnalysis.TypeChecker
+import MAlice.SemanticAnalysis.ConstructChecker
+import MAlice.SemanticAnalysis.ExprChecker
+import MAlice.SemanticAnalysis.StmtChecker
 
 -- |Parses MAlice code and returns a list of errors or the AST
 mparse :: String -> String -> Either String Program
@@ -101,17 +102,17 @@ varDecl = (try $
              (do { reserved "of"
                  ; e <- expr
                  ; terminator
-                 ; checkExpr t e
+                 ; checkExpr t e (show $ VAssignDecl t var e)
                  ; insertSymbol var (Just t) IdVariable []
                  ; return $ VAssignDecl t var e })
            }) <|>
        --Case 3: Array / reference type declaration
        (do { reserved "had"
            ; e <- expr
-           -- Check that array index is an integer expression
-           ; checkExpr Number e
            ; t <- vtype
            ; terminator
+           -- Check that array index is an integer expression
+           ; checkExpr Number e (show $ VArrayDecl t var e)
            ; insertSymbol var (Just . RefType $ t) IdVariable []
            ; return $ VArrayDecl t var e })
      }) <?> "variable declaration"
@@ -232,12 +233,12 @@ exprStmt = (do {
   -- Increment
   (do { reserved "ate"
       ; terminator
-      ; checkExpr Number e1
+      ; checkExpr Number e1 (show e1 ++ " ate")
       ; return $ SInc e1 })       <|>
   -- Decrement
   (do { reserved "drank"
       ; terminator
-      ; checkExpr Number e1
+      ; checkExpr Number e1 (show e1 ++ " drank")
       ; return $ SDec e1 })       <|>
   -- Print #1
   (do { reserved "said"
@@ -277,7 +278,7 @@ loopStmt :: MParser Stmt
 loopStmt = (do
   reserved "eventually"
   e <- parens expr
-  checkExpr Boolean e
+  checkExpr Boolean e ("Loop condition: " ++ show e)
   reserved "because"
   cond <- compoundStmt
   reserved "enough"
@@ -290,7 +291,7 @@ ifElseStmt :: MParser Stmt
 ifElseStmt = (do
   reserved "either"
   e <- parens expr
-  checkExpr Boolean e
+  checkExpr Boolean e ("'either' conditional: " ++ show e)
   reserved "so"
   c1 <- compoundStmt
   reserved "or"
@@ -305,7 +306,7 @@ ifElseIfStmt :: MParser Stmt
 ifElseIfStmt = do {
     reserved "perhaps"
   ; e <- parens expr
-  ; checkExpr Boolean e
+  ; checkExpr Boolean e ("'perhaps' conditional: " ++ show e)
   ; reserved "so"
   ; cst <- compoundStmt
   ; let readElseIfs =
@@ -313,7 +314,7 @@ ifElseIfStmt = do {
            (do { reserved "or"
                ; reserved "maybe"
                ; e' <- parens expr
-               ; checkExpr Boolean e
+               ; checkExpr Boolean e ("'or maybe' conditional: " ++ show e')
                ; reserved "so"
                ; cst' <- compoundStmt
                ; return $ If e' cst'}))
@@ -393,12 +394,12 @@ exprTerm = try . lexeme $
   do { var <- identifier
      ; (do { reserved "'s"
            ; ix <- expr
-           ; checkExpr Number ix
-           ; _ <- getArrayType var
+           ; let arrRefExpr = EArrRef var ix
+           ; checkExpr Number ix (show arrRefExpr)
+           ; _ <- getArrayType var arrRefExpr
            ; reserved "piece"
-           ; return $ EArrRef var ix })        <|>
+           ; return arrRefExpr })              <|>
        (do { args <- actualParams
-           ; checkFuncCall var args
            ; return $ ECall var args })        <|>
        (do { notFollowedBy $
              reserved "'s" <|> (actualParams >> return ())

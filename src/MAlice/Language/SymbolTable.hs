@@ -21,6 +21,7 @@ data SymbolTableEntry =
 data IdentifierType =
   IdVariable | IdFunction | IdProcedure
   deriving (Eq)
+
 -- Print the kind slightly nicer in error messages
 instance Show IdentifierType where
   show IdVariable = "Variable"

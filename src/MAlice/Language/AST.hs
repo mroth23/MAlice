@@ -16,7 +16,19 @@ data Decl =
   VArrayDecl Type Ident Expr |
   FuncDecl Ident FormalParams Type Body |
   ProcDecl Ident FormalParams Body
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Decl where
+  show (VarDecl t ident) =
+    ident ++ " was a " ++ (show t)
+  show (VAssignDecl t ident expr) =
+    ident ++ " was a " ++ (show t) ++ " of " ++ (show expr)
+  show (VArrayDecl t ident expr) =
+    ident ++ " had " ++ (show expr) ++ " " ++ (show t)
+  show (FuncDecl ident params t body) =
+    "The room " ++ ident ++ (show params) ++ " contained a " ++ (show t)
+  show (ProcDecl ident params body) =
+    "The looking-glass " ++ ident ++ (show params)
 
 data FormalParams =
   FPList [FormalParam]
@@ -116,7 +128,12 @@ instance Show Expr where
 
 data ActualParams =
   APList [Expr]
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show ActualParams where
+  show (APList []) = ""
+  show (APList es) =
+    concatMap ((++ ", ") . show) (init es) ++ (show . last $ es)
 
 type Ident = String
 type IntLiteral = Integer

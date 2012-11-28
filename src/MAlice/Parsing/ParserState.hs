@@ -1,8 +1,27 @@
-module MAlice.Parsing.ParserState where
+module MAlice.Parsing.ParserState
+       ( MParser
+       , ParserState(..)
+       , initState
+       , SemanticErrors(..)
+       , SemanticError(..)
+       , SemanticWarnings(..)
+       , SemanticWarning(..)
+       , logError
+       , logWarning
+       , newSymbolTable
+       , removeSymbolTable
+       , findGlobalIdentifier
+       , checkLocalIdentifier
+       , insertSymbol
+       , getCurrentScope
+       , getContext
+       , setContext )
+where
 
 import MAlice.Language.Types
 import MAlice.Language.SymbolTable
-import Text.Parsec.Prim (Parsec (..), getPosition, getInput)
+import MAlice.Language.Utilities
+import Text.Parsec.Prim (Parsec (..), getPosition)
 import Text.Parsec.Pos (SourcePos(..))
 import Text.Parsec (getState, updateState)
 import Control.Monad (liftM)
@@ -15,7 +34,8 @@ data ParserState =
   ParserState { errorList :: SemanticErrors
               , warnList :: SemanticWarnings
               , symTables :: [SymbolTable]
-              , scopes :: [String] }
+              , scopes :: [String]
+              , context :: String }
 
 -- |The initial parser state with no errors, an empty global symbol table
 -- and no defined scopes
@@ -24,7 +44,8 @@ initState =
   ParserState { errorList = SemanticErrors { errors = [] }
               , warnList = SemanticWarnings { warnings = [] }
               , symTables = [[]]
-              , scopes = [] }
+              , scopes = []
+              , context = "" }
 
 -- |Data type used in 'ParserState' to store semantic errors
 newtype SemanticErrors =
@@ -34,10 +55,12 @@ newtype SemanticErrors =
 -- without language extensions
 instance Show SemanticErrors where
   -- Prints all errors contained in the data type line by line
+
   show =
-    concatMap (\(err, pos, inp) ->
-                "Semantic error in " ++ show pos
-                ++ ":\n"++ (head . lines $ inp) ++ "\n" ++ show err ++ "\n") .
+    concatMap (
+      \(err, pos, inp) ->
+      "Semantic error in " ++ show pos ++ ":\n> "++
+       inp ++ "\n" ++ show err ++ "\n\n") .
     errors
 
 -- |Data type used in 'ParserState' to store semantic warnings
@@ -49,7 +72,7 @@ instance Show SemanticWarnings where
   show =
     concatMap (\(wrn, pos, inp) ->
                 "Warning in " ++ show pos
-                ++ ":\n" ++ show wrn ++ "\n") .
+                ++ ":\n" ++ show wrn ++ "\n\n") .
     warnings
 
 -- |The different kinds of semantic errors that can occur, each has space for
@@ -82,24 +105,20 @@ instance Show SemanticError where
 
 data SemanticWarning =
   FunctionReturnPathWarning String |
-  EmptyFunctionWarning      String |
-  IdInitialisationWarning   String
+  EmptyFunctionWarning      String
 
 instance Show SemanticWarning where
   show (FunctionReturnPathWarning ident) =
     "Function " ++ ident ++ " might not return a value on all code paths"
   show (EmptyFunctionWarning ident) =
     "Function " ++ ident ++ " is empty and calling it may cause runtime errors"
-  show (IdInitialisationWarning ident) =
-    "Variable " ++ ident ++ " might not be initialised on all code paths" ++
-    ", this may cause a runtime error"
 
 -- |Logs an error to the parser state together with the current position
 logError :: SemanticError -> MParser ()
 logError perr = do
   st <- getState
   pos <- getPosition
-  inp <- getInput
+  inp <- getContext
   let el = errorList st
   let newEl = el { errors = errors el ++ [(perr, pos, inp)]}
   updateState $ \st -> st { errorList = newEl }
@@ -109,7 +128,7 @@ logWarning :: SemanticWarning -> MParser ()
 logWarning perr = do
   st <- getState
   pos <- getPosition
-  inp <- getInput
+  inp <- getContext
   let el = warnList st
   let newEl = el { warnings = warnings el ++ [(perr, pos, inp)]}
   updateState $ \st -> st { warnList = newEl }
@@ -152,6 +171,7 @@ checkLocalIdentifier ident = do
 -- |Inserts a symbol into the symbol table
 insertSymbol :: String -> Maybe Type -> IdentifierType -> ArgTypes -> MParser ()
 insertSymbol ident vartype idtype argtypes = do
+  setContext $ "Declaration of '"++ident ++ "' with type "++ (showMaybe vartype)
   checkLocalIdentifier ident
   (t:ts) <- getSymbolTables
   let newt = addSymbol ident vartype idtype argtypes t
@@ -162,3 +182,11 @@ insertSymbol ident vartype idtype argtypes = do
 getCurrentScope :: MParser String
 getCurrentScope =
   head `liftM` (scopes `liftM` getState)
+
+getContext :: MParser String
+getContext =
+  context `liftM` getState
+
+setContext :: String -> MParser ()
+setContext nc =
+  updateState $ \st -> st { context = nc }
