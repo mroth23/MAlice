@@ -24,12 +24,12 @@ build-type:
 cabal-version:
   >=1.10
 
-executable MAlice
+executable compile
   Default-language:
     Haskell2010
 
   GHC-options
-    -Wall -Werror
+    -Wall -O2
 
   Hs-source-dirs:
     src
@@ -39,4 +39,210 @@ executable MAlice
        
   build-depends:
     base             == 4.5.*,
-    parsec           == 3.1.*
+    MAlice           == 0.1
+
+flag base4
+    Description: Use base-4.*
+    Default:    True
+
+-- This contains all the dependencies for the compiler
+-- parsec -> (bytestring -> (deepseq -> array)), (mtl -> transformers), text
+-- It *should* build with GHC7 and base == 4.*!
+library
+  default-language:
+    Haskell2010
+
+  exposed-modules:
+    Text.Parsec
+    Text.Parsec.String
+    Text.Parsec.ByteString
+    Text.Parsec.ByteString.Lazy
+    Text.Parsec.Text
+    Text.Parsec.Text.Lazy
+    Text.Parsec.Pos
+    Text.Parsec.Error
+    Text.Parsec.Prim
+    Text.Parsec.Char
+    Text.Parsec.Combinator
+    Text.Parsec.Token
+    Text.Parsec.Expr
+    Text.Parsec.Language
+    Text.Parsec.Perm
+    Text.ParserCombinators.Parsec
+    Text.ParserCombinators.Parsec.Char
+    Text.ParserCombinators.Parsec.Combinator
+    Text.ParserCombinators.Parsec.Error
+    Text.ParserCombinators.Parsec.Expr
+    Text.ParserCombinators.Parsec.Language
+    Text.ParserCombinators.Parsec.Perm
+    Text.ParserCombinators.Parsec.Pos
+    Text.ParserCombinators.Parsec.Prim
+    Text.ParserCombinators.Parsec.Token
+    Data.ByteString
+    Data.ByteString.Char8
+    Data.ByteString.Unsafe
+    Data.ByteString.Internal
+    Data.ByteString.Lazy
+    Data.ByteString.Lazy.Char8
+    Data.ByteString.Lazy.Internal
+    Data.ByteString.Builder
+    Data.ByteString.Builder.Extra
+    Data.ByteString.Builder.Prim
+    Data.ByteString.Builder.Internal
+    Data.ByteString.Builder.Prim.Internal
+    Data.ByteString.Lazy.Builder
+    Data.ByteString.Lazy.Builder.Extras
+    Data.ByteString.Lazy.Builder.ASCII
+    Data.Text
+    Data.Text.Array
+    Data.Text.Encoding
+    Data.Text.Encoding.Error
+    Data.Text.Foreign
+    Data.Text.IO
+    Data.Text.Internal
+    Data.Text.Lazy
+    Data.Text.Lazy.Builder
+    Data.Text.Lazy.Builder.Int
+    Data.Text.Lazy.Builder.RealFloat
+    Data.Text.Lazy.Encoding
+    Data.Text.Lazy.IO
+    Data.Text.Lazy.Internal
+    Data.Text.Lazy.Read
+    Data.Text.Read
+    Control.DeepSeq
+    Data.Array.Base
+    Data.Array.IArray
+    Data.Array
+    Data.Array.IO
+    Data.Array.IO.Safe
+    Data.Array.IO.Internals
+    Data.Array.MArray
+    Data.Array.MArray.Safe
+    Data.Array.ST
+    Data.Array.ST.Safe
+    Data.Array.Storable
+    Data.Array.Storable.Safe
+    Data.Array.Storable.Internals
+    Data.Array.Unboxed
+    Data.Array.Unsafe
+    Control.Monad.Cont
+    Control.Monad.Cont.Class
+    Control.Monad.Error
+    Control.Monad.Error.Class
+    Control.Monad.Identity
+    Control.Monad.List
+    Control.Monad.RWS
+    Control.Monad.RWS.Class
+    Control.Monad.RWS.Lazy
+    Control.Monad.RWS.Strict
+    Control.Monad.Reader
+    Control.Monad.Reader.Class
+    Control.Monad.State
+    Control.Monad.State.Class
+    Control.Monad.State.Lazy
+    Control.Monad.State.Strict
+    Control.Monad.Trans
+    Control.Monad.Writer
+    Control.Monad.Writer.Class
+    Control.Monad.Writer.Lazy
+    Control.Monad.Writer.Strict
+    Control.Applicative.Backwards
+    Control.Applicative.Lift
+    Control.Monad.IO.Class
+    Control.Monad.Trans.Class
+    Control.Monad.Trans.Cont
+    Control.Monad.Trans.Error
+    Control.Monad.Trans.Identity
+    Control.Monad.Trans.List
+    Control.Monad.Trans.Maybe
+    Control.Monad.Trans.Reader
+    Control.Monad.Trans.RWS
+    Control.Monad.Trans.RWS.Lazy
+    Control.Monad.Trans.RWS.Strict
+    Control.Monad.Trans.State
+    Control.Monad.Trans.State.Lazy
+    Control.Monad.Trans.State.Strict
+    Control.Monad.Trans.Writer
+    Control.Monad.Trans.Writer.Lazy
+    Control.Monad.Trans.Writer.Strict
+    Data.Functor.Compose
+    Data.Functor.Constant
+    Data.Functor.Identity
+    Data.Functor.Product
+    Data.Functor.Reverse
+
+  other-modules:
+    Data.ByteString.Builder.ASCII
+    Data.ByteString.Builder.Prim.Binary
+    Data.ByteString.Builder.Prim.ASCII
+    Data.ByteString.Builder.Prim.Internal.Floating
+    Data.ByteString.Builder.Prim.Internal.UncheckedShifts
+    Data.ByteString.Builder.Prim.Internal.Base16
+    Data.Text.Encoding.Fusion
+    Data.Text.Encoding.Fusion.Common
+    Data.Text.Encoding.Utf16
+    Data.Text.Encoding.Utf32
+    Data.Text.Encoding.Utf8
+    Data.Text.Fusion
+    Data.Text.Fusion.CaseMapping
+    Data.Text.Fusion.Common
+    Data.Text.Fusion.Internal
+    Data.Text.Fusion.Size
+    Data.Text.IO.Internal
+    Data.Text.Lazy.Builder.Functions
+    Data.Text.Lazy.Builder.RealFloat.Functions
+    Data.Text.Lazy.Encoding.Fusion
+    Data.Text.Lazy.Fusion
+    Data.Text.Lazy.Search
+    Data.Text.Private
+    Data.Text.Search
+    Data.Text.Unsafe
+    Data.Text.Unsafe.Base
+    Data.Text.UnsafeChar
+    Data.Text.UnsafeShift
+    Data.Text.Util
+    
+  hs-source-dirs:
+    src
+
+  default-extensions:
+    BangPatterns,
+    CPP,
+    DeriveDataTypeable,
+    ExistentialQuantification,
+    FlexibleContexts,
+    FlexibleInstances,
+    ForeignFunctionInterface,
+    FunctionalDependencies,
+    MagicHash,
+    MultiParamTypeClasses,
+    NamedFieldPuns,
+    PatternSignatures,
+    PolymorphicComponents,
+    Rank2Types,
+    ScopedTypeVariables,
+    StandaloneDeriving,
+    UnboxedTuples,
+    UnliftedFFITypes
+
+  c-sources:         src/cbits/fpstring.c
+                     src/cbits/itoa.c
+                     src/cbits/cbits.c
+  c-sources: 
+  include-dirs:      src/include
+  includes:          fpstring.h, Typeable.h
+  install-includes:  fpstring.h, Typeable.h
+
+  build-depends:
+    base >= 4
+
+  cpp-options:
+    -DHAVE_DEEPSEQ
+  ghc-options:
+    -Wall
+    -O2
+    -fmax-simplifier-iterations=10
+    -fdicts-cheap
+    -fspec-constr-count=6
+    -funbox-strict-fields
+    -fno-warn-unused-imports
