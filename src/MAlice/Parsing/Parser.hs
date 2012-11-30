@@ -17,14 +17,14 @@ import MAlice.SemanticAnalysis.ExprChecker
 import MAlice.SemanticAnalysis.StmtChecker
 
 -- |Parses MAlice code and returns a list of errors or the AST
-mparse :: String -> String -> Either String Program
+mparse :: String -> String -> Either String (Program, ParserState)
 mparse code name = do
   case (runParser maliceParse initState name code) of
     Left err -> Left ("Parse error in " ++ show err)
     Right (ast, st) ->
       case errors . errorList $ st of
         [] -> case warnings . warnList $ st of
-                   [] -> Right ast
+                   [] -> Right (ast, st)
                    wl -> Left . show $ warnList st
         el -> Left . show $ errorList st
 

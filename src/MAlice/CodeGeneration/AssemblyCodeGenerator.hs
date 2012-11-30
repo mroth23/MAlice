@@ -1,8 +1,21 @@
 module MAlice.CodeGeneration.AssemblyCodeGenerator where
 
+import MAlice.CodeGeneration.CodeGen
 import MAlice.CodeGeneration.ASM
 import MAlice.Language.AST
 import MAlice.Language.Types
+
+generateCode :: Program -> CodeGen [Instruction]
+generateCode p =
+  return $ generateProgram p
+
+generateProgram :: Program -> CodeGen [Instruction]
+generateProgram (DeclList ds)
+  declInstrs <- generateDecls ds
+
+
+uniqueID :: CodeGen String
+uniqueID = undefined
 
 -- List of available registers for use.
 allRegs :: [Register]
@@ -26,12 +39,12 @@ restRegs' (x:xs) regsNotInUse
   | elem x regsNotInUse = restRegs' xs regsNotInUse
   | otherwise           = [putStrLn (show (Pop x))] ++ restRegs' xs regsNotInUse
 
--- Takes a program and gives and output.
+{- -- Takes a program and gives and output.
 generateCode :: Program -> IO ()
-generateCode (Program (DeclList [])) 
+generateCode (Program (DeclList []))
   = return ()
 generateCode (Program (DeclList (decl:decls)))
-  = outputSequence ((generateDecl decl allRegs) ++ [generateCode (Program (DeclList decls))])
+  = outputSequence ((generateDecl decl allRegs) ++ [generateCode (Program (DeclList decls))]) -}
 
 -- Turns a decleration and a list of available registers and gives a list of output.
 generateDecl :: Decl -> [Register] -> [IO ()]
@@ -48,7 +61,7 @@ generateDecl (ProcDecl ident (FPList formalParams) body) regsNotInUse
 
 -- Generates code for popping parameters from the stack into free registers.
 generateFormalParams :: [FormalParam] -> [Register] ->  [IO ()]
-generateFormalParams [] _ 
+generateFormalParams [] _
   = []
 generateFormalParams (f:frest)  (r:rest)
   = generateFormalParam f (r:rest) ++ generateFormalParams frest rest
@@ -94,12 +107,14 @@ generateStmt (SCall ident actualParams) regs
   = undefined
 generateStmt (SLoop expr comStmt) regs
   = undefined
-generateStmt (SIf ((expr, comStmt):rest)) regs
+generateStmt (SIf _) regs
   = undefined
 
-generateExpr :: Expr -> [Register] -> [IO ()]
-generateExpr (EPlus expr1 expr2) regs
-  = undefined
+generateExpr :: Expr -> [Register] -> CodeGen [Instruction]
+generateExpr (EPlus expr1 expr2) regs = do
+  label <- uniqueID
+  return [Mov label label]
+
 generateExpr (EMinus expr1 expr2) regs
   = undefined
 generateExpr (EMult expr1 expr2) regs
@@ -156,7 +171,7 @@ generateExpr (EPositive expr) regs
 
 -- Generate code for producing parameters and push them right to left onto stack.
 generateActualParams :: [Expr] -> [Register] -> [IO ()]
-generateActualParams [] _ 
+generateActualParams [] _
   = []
 generateActualParams (x:xs) (r:rest)
   = generateActualParams xs (r:rest) ++ generateExpr x (r:rest) ++ [putStrLn (show (Push r))]
@@ -164,4 +179,4 @@ generateActualParams (x:xs) (r:rest)
 outputSequence :: [IO ()] -> IO ()
 outputSequence [] = return ()
 outputSequence (x:xs) = do x
-			   outputSequence xs
+                           outputSequence xs
