@@ -9,12 +9,38 @@ data Register
   deriving (Show, Eq)
 
 data Instruction 
-  = Mov Register Register
-  | Push Register
-  | Pop Register
-  | Add Register Register
-  | Sub Register Register
-  | Colon String
+  = Mov   Operand Operand
+  | Push  Operand
+  | Pop   Operand
+  | Add   Operand Operand 
+  | Sub   Operand Operand
+  | Mul   Operand Operand
+  | Div   Operand Operand
+  | IDiv  Operand Operand
+  | Mod   Operand Operand -- Use DIV and find value in EDX
+  | Neg   Operand
+  | Not   Operand
+  | Or    Operand Operand
+  | And   Operand Operand
+  | Xor   Operand Operand
+  | Inc   Operand
+  | Dec   Operand
+  | Test  Operand Operand
+  | Label String
+  | Jmp   String
+  | Jng   String
+  | Jg    String
+  | Jnge  String
+  | Jge   String
+  | Je    String
+  | Cmp   Operand Operand
+  | Call  String
+  | Ret
+  deriving (Show, Eq)
+
+data Operand
+  = Reg Register
+  | Imm Integer
   deriving (Show, Eq)
 
 type ImmVal = Word64
@@ -24,6 +50,7 @@ type VariableStore = [VariableLoc]
 
 data VariableLoc
   = Regis String Register | Addre String Int
+  deriving (Show, Eq)
 
 -- Returns a variable location given a string key and a variable store.
 getVariableLoc :: String -> VariableStore -> VariableLoc
@@ -51,5 +78,5 @@ removeVariableLoc key ((Regis str reg):xs)
   | key == str = xs
 removeVariableLoc key ((Addre str int):xs)
   | key == str = xs
-removeVariableLoc key (_:xs)
-  = removeVariableLoc key xs
+removeVariableLoc key (x:xs)
+  = [x] ++ removeVariableLoc key xs
