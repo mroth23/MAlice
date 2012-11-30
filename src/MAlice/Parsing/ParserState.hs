@@ -1,43 +1,88 @@
-module MAlice.Parsing.ParserState where
+module MAlice.Parsing.ParserState
+       ( MParser
+       , ParserState(..)
+       , initState
+       , SemanticErrors(..)
+       , SemanticError(..)
+       , SemanticWarnings(..)
+       , SemanticWarning(..)
+       , logError
+       , logWarning
+       , newSymbolTable
+       , removeSymbolTable
+       , findGlobalIdentifier
+       , checkLocalIdentifier
+       , insertSymbol
+       , getCurrentScope
+       , getContext
+       , setContext
+       , recordPosition
+       , clearPosition )
+where
 
 import MAlice.Language.Types
 import MAlice.Language.SymbolTable
-import Text.ParserCombinators.Parsec.Prim (GenParser (..), getPosition)
+import MAlice.Language.Utilities
+import Text.Parsec.Prim (Parsec (..), getPosition)
 import Text.Parsec.Pos (SourcePos(..))
-import Text.ParserCombinators.Parsec (getState, updateState)
+import Text.Parsec (getState, updateState)
 import Control.Monad (liftM)
 
--- |A standard Parser from Text.ParserCombinators.Parsec.Prim with
--- our custom parser state
-type MParser a = GenParser Char ParserState a
+-- This module exists to hide most of the functionality of the parser from the
+-- type checker and other classes. They have methods to access and modify state,
+-- log errors and get some type constructors / synonyms. The actual
+-- implementation of e.g. the symbol table is unimportant and can be changed,
+-- without the need to modify other code.
+
+-- |A standard Parser from Text.Parsec.Prim with our custom parser state
+type MParser a = Parsec String ParserState a
 
 -- |The state passed around by the parser
 data ParserState =
   ParserState { errorList :: SemanticErrors
+              , warnList :: SemanticWarnings
               , symTables :: [SymbolTable]
-              , scopes :: [String] }
+              , scopes :: [String]
+              , context :: String
+              , customPos :: [SourcePos] }
 
 -- |The initial parser state with no errors, an empty global symbol table
 -- and no defined scopes
 initState :: ParserState
 initState =
   ParserState { errorList = SemanticErrors { errors = [] }
+              , warnList = SemanticWarnings { warnings = [] }
               , symTables = [[]]
-              , scopes = [] }
+              , scopes = []
+              , context = ""
+              , customPos = [] }
 
 -- |Data type used in 'ParserState' to store semantic errors
 newtype SemanticErrors =
-  SemanticErrors { errors :: [(SemanticError, SourcePos)] }
+  SemanticErrors { errors :: [(SemanticError, SourcePos, String)] }
 
 -- This is newtype so we can make a show instance
 -- without language extensions
 instance Show SemanticErrors where
   -- Prints all errors contained in the data type line by line
   show =
-    concatMap (\(err, pos) ->
-                "Semantic error in " ++ show pos
-                ++ ":\n"++ show err ++ "\n") .
+    concatMap (
+      \(err, pos, inp) ->
+      "Semantic error in " ++ show pos ++ ":\n>\t "++
+       inp ++ "\n" ++ show err ++ "\n\n") .
     errors
+
+-- |Data type used in 'ParserState' to store semantic warnings
+newtype SemanticWarnings =
+  SemanticWarnings { warnings :: [(SemanticWarning, SourcePos, String)] }
+
+instance Show SemanticWarnings where
+  -- Prints all warnings contained in the data type line by line
+  show =
+    concatMap (\(wrn, pos, inp) ->
+                "Warning in " ++ show pos
+                ++ ":\n" ++ show wrn ++ "\n") .
+    warnings
 
 -- |The different kinds of semantic errors that can occur, each has space for
 -- a custom message String
@@ -67,14 +112,35 @@ instance Show SemanticError where
   show (EntryPointError msg) =
     "Program entry point error: " ++ msg
 
+data SemanticWarning =
+  FunctionReturnPathWarning String |
+  EmptyFunctionWarning      String
+
+instance Show SemanticWarning where
+  show (FunctionReturnPathWarning ident) =
+    "Function " ++ ident ++ " might not return a value on all code paths"
+  show (EmptyFunctionWarning ident) =
+    "Function " ++ ident ++ " is empty and calling it may cause runtime errors"
+
 -- |Logs an error to the parser state together with the current position
 logError :: SemanticError -> MParser ()
 logError perr = do
   st <- getState
-  pos <- getPosition
+  pos <- getCPos
+  inp <- getContext
   let el = errorList st
-  let newEl = el { errors = errors el ++ [(perr, pos)]}
+  let newEl = el { errors = errors el ++ [(perr, pos, inp)]}
   updateState $ \st -> st { errorList = newEl }
+
+-- |Logs a warning to the parser state together with the current position
+logWarning :: SemanticWarning -> MParser ()
+logWarning perr = do
+  st <- getState
+  pos <- getCPos
+  inp <- getContext
+  let el = warnList st
+  let newEl = el { warnings = warnings el ++ [(perr, pos, inp)]}
+  updateState $ \st -> st { warnList = newEl }
 
 -- |Adds a new symbol table for a scope with a given name
 newSymbolTable :: String -> MParser ()
@@ -114,6 +180,7 @@ checkLocalIdentifier ident = do
 -- |Inserts a symbol into the symbol table
 insertSymbol :: String -> Maybe Type -> IdentifierType -> ArgTypes -> MParser ()
 insertSymbol ident vartype idtype argtypes = do
+  setContext $ "Declaration of '"++ident ++ "' with type "++ (showMaybe vartype)
   checkLocalIdentifier ident
   (t:ts) <- getSymbolTables
   let newt = addSymbol ident vartype idtype argtypes t
@@ -124,3 +191,45 @@ insertSymbol ident vartype idtype argtypes = do
 getCurrentScope :: MParser String
 getCurrentScope =
   head `liftM` (scopes `liftM` getState)
+
+-- |Context string handling. This is used for error output. The context is a
+-- string description (sometimes in the form of PARSED code) of how the compiler
+-- understands the code which caused the error. This is not always exactly
+-- equivalent to the source code, and may have additional explanations.
+getContext :: MParser String
+getContext =
+  context `liftM` getState
+
+setContext :: String -> MParser ()
+setContext nc =
+  updateState $ \st -> st { context = nc }
+
+-- |Allows to record a custom position used in error messages. For example, type
+-- checking is usually done after a statement / expression is fully parsed, so
+-- that parse errors show up before type errors. But the source position shown
+-- in the error message will then be after the statement (sometimes even on a
+-- new line). This allows us to circumvent this limitation.
+getCPos :: MParser (SourcePos)
+getCPos = do
+  st <- getState
+  case customPos st of
+    [] -> getPosition
+    (p:ps) -> return p
+
+-- |Records the current position for later use.
+recordPosition :: MParser ()
+recordPosition = do
+  st <- getState
+  curr <- getPosition
+  setCPos $ curr : (customPos st)
+
+clearPosition :: MParser ()
+clearPosition = do
+  st <- getState
+  case customPos st of
+    [] -> return ()
+    (_:ps) -> setCPos ps
+
+setCPos :: [SourcePos] -> MParser ()
+setCPos ps =
+  updateState $ \st -> st { customPos = ps }

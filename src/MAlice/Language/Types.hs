@@ -7,11 +7,11 @@ data Type =
   deriving (Eq)
 
 instance Show Type where
-  show Number = "Number"
-  show Letter = "Letter"
-  show Sentence = "Sentence"
+  show Number = "number"
+  show Letter = "letter"
+  show Sentence = "sentence"
   show Boolean = "Boolean"
-  show (RefType t) = "Spider " ++ show t
+  show (RefType t) = "spider " ++ show t
 
 -- Returns True if the type supports (==) comparison
 isEq :: Type -> Bool

@@ -10,4 +10,4 @@ main = do
   code <- readFile $ args !! 0
   case (MP.mparse code $ args !! 0) of
     Left err -> putStrLn err
-    Right ast -> putStrLn . show $ ast
+    Right ast -> putStrLn "Program parsed and type-checked successfully!"

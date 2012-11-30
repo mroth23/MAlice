@@ -1,19 +1,20 @@
 module MAlice.Parsing.Parser
        ( mparse
-       , MParser (..)
        ) where
 
 import Control.Monad
-import Text.ParserCombinators.Parsec hiding (spaces)
-import Text.ParserCombinators.Parsec.Expr
-import Text.ParserCombinators.Parsec.Language
-import qualified Text.ParserCombinators.Parsec.Token as T
+import Text.Parsec hiding (spaces)
+import Text.Parsec.Expr
+import Text.Parsec.Language
+import qualified Text.Parsec.Token as T
 
 import MAlice.Parsing.ParserState
 import MAlice.Language.AST
 import MAlice.Language.SymbolTable
 import MAlice.Language.Types
-import MAlice.SemanticAnalysis.TypeChecker
+import MAlice.SemanticAnalysis.ConstructChecker
+import MAlice.SemanticAnalysis.ExprChecker
+import MAlice.SemanticAnalysis.StmtChecker
 
 -- |Parses MAlice code and returns a list of errors or the AST
 mparse :: String -> String -> Either String Program
@@ -22,8 +23,10 @@ mparse code name = do
     Left err -> Left ("Parse error in " ++ show err)
     Right (ast, st) ->
       case errors . errorList $ st of
-        [] -> Right ast
-        el -> Left $ show (errorList st)
+        [] -> case warnings . warnList $ st of
+                   [] -> Right ast
+                   wl -> Left . show $ warnList st
+        el -> Left . show $ errorList st
 
 -- |Some basic definitions for the MAlice language
 maliceDef =
@@ -62,25 +65,29 @@ charLit    = T.charLiteral   lexer -- parses char literal
 commaSep   = T.commaSep      lexer -- parses a comma separated list
 lexeme     = T.lexeme        lexer -- parses with a parser, ignoring whitespace
 
--- |Parses an alice source file and returns the AST and parser state.
+-- |Parses a MAlice source file and returns the AST and parser state.
 -- Whitespace is ignored, the parser then proceeds to the EOF. The existence
--- of a program entry point, the procedure 'hatta', is also checked.
+-- of a program entry point (the procedure 'hatta') is also checked.
 maliceParse :: MParser (Program, ParserState)
 maliceParse = do
-  ds <- (whiteSpace >> decls)
+  whiteSpace
+  ds <- decls
   eof
   checkEntryPoint
   finalState <- getState
   return $ (Program ds, finalState)
 
 -- |Parses a list of at least one (valid) declaration
+-- <decls> = <decl> | <decls> <decl>
 decls :: MParser Decls
 decls = (lexeme $ do
   ps <- many1 decl
   return $ DeclList ps)
-  <?> "valid declaration"
 
 -- |Parses a variable declaration and adds the variable to the symbol table.
+-- <varDecl> = <id> <cont>
+-- <cont>    = was a <type> <cont'> | had <expr> <type> <terminator>
+-- <cont'>   = <terminator> | too <terminator> | of <expr> <terminator>
 varDecl :: MParser Decl
 varDecl = (try $
   do { var <- identifier
@@ -97,19 +104,23 @@ varDecl = (try $
                  ; return $ VarDecl t var }) <|>
              --Case 2: Variable declaration with assignment
              (do { reserved "of"
+                 ; recordPosition
                  ; e <- expr
                  ; terminator
-                 ; checkExpr t e
+                 ; checkExpr t e (show $ VAssignDecl t var e)
+                 ; clearPosition
                  ; insertSymbol var (Just t) IdVariable []
                  ; return $ VAssignDecl t var e })
            }) <|>
        --Case 3: Array / reference type declaration
        (do { reserved "had"
+           ; recordPosition
            ; e <- expr
-           -- Check that array index is an integer expression
-           ; checkExpr Number e
            ; t <- vtype
            ; terminator
+           -- Check that array index is an integer expression
+           ; checkExpr Number e (show $ VArrayDecl t var e)
+           ; clearPosition
            ; insertSymbol var (Just . RefType $ t) IdVariable []
            ; return $ VArrayDecl t var e })
      }) <?> "variable declaration"
@@ -117,6 +128,9 @@ varDecl = (try $
 -- |Parses a procedure or function declaration. If parsing succeeds, a new
 -- symbol table is added to the hierarchy and the function arguments are added
 -- to it, so the method body can be parsed successfully.
+-- <methodDecl> = The <cont>
+-- <cont> = room <id> <formalParams> contained a <type> <body> |
+--          looking-glass <id> <formalParams> <body>
 methodDecl :: MParser Decl
 methodDecl =
   (do { reserved "The";
@@ -131,6 +145,7 @@ methodDecl =
             ; enterMethod f (Just t) IdFunction args
             ; b <- body
             ; exitMethod
+            ; checkReturnPath b f
             ; return $ FuncDecl f args t b }) <|>
         (do { reserved "looking-glass"
             ; f <- identifier
@@ -144,6 +159,7 @@ methodDecl =
       }) <?> "method declaration"
 
 -- |Parses a method or variable declaration.
+-- <decl> = <methodDecl> | <varDecl>
 decl :: MParser Decl
 decl = lexeme (
        varDecl <|>
@@ -152,14 +168,16 @@ decl = lexeme (
 
 -- |Parses the parameters of a method as they appear in its declaration.
 -- Parameters are a comma separated list of <type> <identifier> lexemes.
+-- <formalParams> = ( [<formalParam>] )
 formalParams :: MParser FormalParams
-formalParams = (try . lexeme $ do
+formalParams = (try $ do
   ps <- parens $ commaSep formalParam
   return $ FPList ps) <?> "formal parameter list"
 
 -- |A single parameter as it appears in the formal parameter list.
+-- <formalParam> = <type> <id>
 formalParam :: MParser FormalParam
-formalParam = (try . lexeme $ do
+formalParam = (lexeme $ do
   t <- vtype
   var <- identifier
   return $ Param t var) <?> "formal parameter"
@@ -167,8 +185,10 @@ formalParam = (try . lexeme $ do
 -- |Parses the various kinds of allowed body blocks. A body block can either
 -- be empty, contain a compound statement, or a number of declarations followed
 -- by a compound statement.
+-- <body> = opened closed | opened <compoundStmt> closed |
+--          opened <decls> <compoundStmt> closed
 body :: MParser Body
-body = try . lexeme $ do {
+body = lexeme $ do {
     reserved "opened"
   ; (do { reserved "closed"
         ; return EmptyBody })        <|>
@@ -179,12 +199,12 @@ body = try . lexeme $ do {
     (do { ds <- decls
         ; cs <- compoundStmt
         ; reserved "closed"
-        ; return $ DeclBody ds cs }) <?>
-    "valid body block"
+        ; return $ DeclBody ds cs })
   }
 
 -- |Parses a compound statement. Compound statements consist of at least one
--- 'statement'.
+-- 'statement'. Uses look-ahead because many1 is a primitive parser combinator.
+-- <compoundStmt> = stmt | compoundStmt stmt
 compoundStmt :: MParser CompoundStmt
 compoundStmt = (try . lexeme $ do
   ss <- many1 stmt
@@ -192,6 +212,7 @@ compoundStmt = (try . lexeme $ do
 
 -- |Parses a body / block statement. This also creates a new scoping level so
 -- already declared variables or functions can be re-declared locally.
+-- <bodyStmt> = <body>
 bodyStmt :: MParser Stmt
 bodyStmt = (do
   enterBlock
@@ -200,81 +221,104 @@ bodyStmt = (do
   return $ SBody b) <?> "block statement"
 
 -- |Parses the null statement.
+-- <nullStmt> = .
 nullStmt :: MParser Stmt
 nullStmt = do
   reserved "."
   return SNull <?> "null statement"
 
 -- |Parses a procedure call statement. Checks whether the called identifier
--- actually refers to a procedure.
+-- actually refers to a procedure. Uses look-ahead so no input is consumed
+-- in case the parse fails, as identifiers can start off with expressions too.
+-- <idStmt> = <id> <actualParams> <terminator>
 idStmt :: MParser Stmt
 idStmt = (try $ do
    f <- identifier
+   recordPosition
    args <- actualParams
    terminator
    checkProcCall f args
+   clearPosition
    return $ SCall f args) <?> "procedure call statement"
 
 -- |Parses function statements. These can be: assignment, increment, decrement
 -- and print. Also checks the types of expressions involved where necessary.
+-- <exprStmt> = <expr> <cont>
+-- <cont> = became <expr> <terminator> | ate <terminator> | drank <terminator>
+--          said Alice <terminator> | spoke <terminator>
 exprStmt :: MParser Stmt
 exprStmt = (do {
   e1 <- expr;
+  recordPosition;
   -- Assignment
   (do { reserved "became"
       ; e2 <- expr
       ; terminator
       ; checkAssignment e1 e2
+      ; clearPosition
       ; return $ SAssign e1 e2 }) <|>
   -- Increment
   (do { reserved "ate"
       ; terminator
-      ; checkExpr Number e1
+      ; checkExpr Number e1 (show e1 ++ " ate")
+      ; clearPosition
       ; return $ SInc e1 })       <|>
   -- Decrement
   (do { reserved "drank"
       ; terminator
-      ; checkExpr Number e1
+      ; checkExpr Number e1 (show e1 ++ " drank")
+      ; clearPosition
       ; return $ SDec e1 })       <|>
   -- Print #1
   (do { reserved "said"
       ; reserved "Alice"
       ; terminator
+      ; clearPosition
       ; return $ SPrint e1 })     <|>
   -- Print #2
   (do { reserved "spoke"
       ; terminator
+      ; clearPosition
       ; return $ SPrint e1 }) }) <?> "function statement"
 
 -- |Parses a return statement. Checks that this is within a function and that
 -- that function has a matching type to the expression returned.
+-- <returnStmt> = Alice found <expr> .
 returnStmt :: MParser Stmt
 returnStmt = (do
   reserved "Alice"
   reserved "found"
+  recordPosition
   e <- expr
   reserved "."
   checkReturnType e
+  clearPosition
   return $ SReturn e) <?> "return statement"
 
 -- |Parses an input statement. Checks that the input is put into an array or a
 -- valid (non-reference) type.
+-- <inputStmt> = what was <expr> ?
 inputStmt :: MParser Stmt
 inputStmt = (do
   reserved "what"
   reserved "was"
+  recordPosition
   var <- expr
-  checkInput var
   reserved "?"
+  checkInput var
+  clearPosition
   return $ SInput var) <?> "input statement"
 
 -- |Parses a loop statement and checks that the loop condition is a valid
 -- boolean expression.
+-- <loopStmt> = eventually (<expr>) because <compoundStmt> enough times
 loopStmt :: MParser Stmt
 loopStmt = (do
   reserved "eventually"
+  recordPosition
   e <- parens expr
-  checkExpr Boolean e
+  checkExpr Boolean e ("Loop condition: " ++ show e)
+  clearPosition
   reserved "because"
   cond <- compoundStmt
   reserved "enough"
@@ -283,11 +327,12 @@ loopStmt = (do
 
 -- |Parses an if/else block and checks that the condition is a valid boolean
 -- expression.
+-- <ifElseStmt> = either (<expr>) so <compoundStmt> or <compoundStmt>
 ifElseStmt :: MParser Stmt
 ifElseStmt = (do
   reserved "either"
   e <- parens expr
-  checkExpr Boolean e
+  checkExpr Boolean e ("'either' conditional: " ++ show e)
   reserved "so"
   c1 <- compoundStmt
   reserved "or"
@@ -298,11 +343,15 @@ ifElseStmt = (do
 
 -- |Parses an if/else if block and checks that every condition is a valid
 -- boolean expression.
+-- <ifElseIfStmt> = perhaps (<expr>) so <compoundStmt> <cont>
+-- <cont> = or maybe (<expr>) so <compoundStmt> <cont> | or <compoundStmt> | ε
 ifElseIfStmt :: MParser Stmt
 ifElseIfStmt = do {
     reserved "perhaps"
+  ; recordPosition
   ; e <- parens expr
-  ; checkExpr Boolean e
+  ; checkExpr Boolean e ("'perhaps' conditional: " ++ show e)
+  ; clearPosition
   ; reserved "so"
   ; cst <- compoundStmt
   ; let readElseIfs =
@@ -310,9 +359,11 @@ ifElseIfStmt = do {
            (do { reserved "or"
                ; reserved "maybe"
                ; e' <- parens expr
-               ; checkExpr Boolean e
+               ; recordPosition
                ; reserved "so"
                ; cst' <- compoundStmt
+               ; checkExpr Boolean e ("'or maybe' conditional: " ++ show e')
+               ; clearPosition
                ; return $ If e' cst'}))
   ; es <- readElseIfs
   ; elseClause <- option [] $ do {
@@ -325,6 +376,8 @@ ifElseIfStmt = do {
   <?> "if/else if block"
 
 -- |Parses any of the statements above.
+-- <stmt> = <bodyStmt> | <nullStmt> | <idStmt> | <exprStmt> | <returnStmt> |
+--          <inputStmt> | <loopStmt> | <ifElseStmt> | <ifElseIfStmt>
 stmt :: MParser Stmt
 stmt =
   bodyStmt     <|>
@@ -339,6 +392,7 @@ stmt =
   "statement"
 
 -- |Parses a type name.
+-- <type> = number | letter | sentence| spider <type>
 vtype :: MParser Type
 vtype = lexeme $ (
   (reserved "number"   >> return Number)   <|>
@@ -390,12 +444,12 @@ exprTerm = try . lexeme $
   do { var <- identifier
      ; (do { reserved "'s"
            ; ix <- expr
-           ; checkExpr Number ix
-           ; _ <- getArrayType var
+           ; let arrRefExpr = EArrRef var ix
+           ; checkExpr Number ix (show arrRefExpr)
+           ; _ <- getArrayType var arrRefExpr
            ; reserved "piece"
-           ; return $ EArrRef var ix })        <|>
+           ; return arrRefExpr })              <|>
        (do { args <- actualParams
-           ; checkFuncCall var args
            ; return $ ECall var args })        <|>
        (do { notFollowedBy $
              reserved "'s" <|> (actualParams >> return ())
@@ -404,12 +458,16 @@ exprTerm = try . lexeme $
   do { char <- charLit; return $ EChar char }   <?>
   "expression atom")
 
--- |
+-- |Parses the parameters as they appear in the program, a list of expressions
+-- <actualParams> = ( cont )
+-- <cont> = ε | <expr> <cont>
 actualParams :: MParser ActualParams
 actualParams = (try . lexeme $ do
   aps <- parens $ commaSep expr
   return $ APList aps) <?> "method call argument list"
 
+-- |Parses a terminator.
+-- <terminator> = . | , | and | but | then
 terminator :: MParser ()
 terminator =
   reserved "."    <|>
