@@ -28,16 +28,24 @@ allRegs :: [Register]
 allRegs =  [RAX, RBX, RCX, RDX, R8, R9, R10, R11, R12, R13, R14]
 
 -- Save free registers onto the stack.
-saveRegs  :: [Register] -> [Instruction]
-saveRegs regsNotInUse = saveRegs' allRegs regsNotInUse
-saveRegs' :: [Register] -> [Register] -> [Instruction]
-saveRegs' [] regsNotInUse = []
+saveRegs  :: [Register] -> CodeGen [Instruction]
+saveRegs regsNotInUse 
+  = do
+     return (saveRegs' allRegs regsNotInUse)
+saveRegs' :: [Register] -> [Register] -> CodeGen [Instruction]
+saveRegs' [] regsNotInUse
+  = do
+      return ([])
 saveRegs' (x:xs) regsNotInUse
-  | elem x regsNotInUse = saveRegs' xs regsNotInUse
-  | otherwise           = [Push (Reg x)] ++ saveRegs' xs regsNotInUse
+  | elem x regsNotInUse 
+    = do 
+        return (saveRegs' xs regsNotInUse)
+  | otherwise           
+    = do
+        return ([Push (Reg x)]) --  ++ saveRegs' xs regsNotInUse)
 
 -- Restore the registers from the stack.
-restRegs :: [Register] -> [Instruction]
+restRegs :: [Register] -> CodeGen [Instruction]
 restRegs regsNotInUse = reverse (restRegs' allRegs regsNotInUse)
 restRegs' :: [Register] -> [Register] -> [Instruction]
 restRegs' [] regsNotInUse = []
@@ -53,7 +61,7 @@ generateCode (Program (DeclList (decl:decls)))
   = (generateDecl decl allRegs) ++ (generateCode (Program (DeclList decls))) -}
 
 -- Turns a decleration and a list of available registers and gives a list of output.
-generateDecl :: Decl -> [Register] -> [Instruction]
+generateDecl :: Decl -> [Register] -> CodeGen [Instruction]
 generateDecl (VarDecl _ _) _
   = [] -- We don't need to write code to declare a variable.
 generateDecl (VAssignDecl _ ident expr) rest
