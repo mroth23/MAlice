@@ -11,7 +11,7 @@ import MAlice.Language.AST
 import MAlice.Language.SymbolTable
 import MAlice.Language.Types
 import MAlice.Language.Utilities
-import MAlice.Parsing.ParserState
+import MAlice.Parser.ParserState
 import MAlice.SemanticAnalysis.ExprChecker
 
 import Prelude hiding (fail)

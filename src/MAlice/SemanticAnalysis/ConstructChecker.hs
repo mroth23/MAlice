@@ -10,7 +10,7 @@ module MAlice.SemanticAnalysis.ConstructChecker
 import MAlice.Language.AST
 import MAlice.Language.SymbolTable
 import MAlice.Language.Types
-import MAlice.Parsing.ParserState
+import MAlice.Parser.ParserState
 
 -- |Adds the method identifier to the current symbol table, creates a new
 -- symbol table for the method and puts the method's arguments in it.

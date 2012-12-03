@@ -1,4 +1,4 @@
-module MAlice.Parsing.Parser
+module MAlice.Parser.Parser
        ( mparse
        ) where
 
@@ -8,7 +8,7 @@ import Text.Parsec.Expr
 import Text.Parsec.Language
 import qualified Text.Parsec.Token as T
 
-import MAlice.Parsing.ParserState
+import MAlice.Parser.ParserState
 import MAlice.Language.AST
 import MAlice.Language.SymbolTable
 import MAlice.Language.Types
@@ -410,31 +410,31 @@ expr =
 -- of the operators. It is represented internally as a list of lists of
 -- operators with the same precedence.
 opTable =
-  [ [ prefix "-"  (ENegate)
-    , prefix "+"  (EPositive) ]
-  , [ prefix "~"  (EInv)
-    , prefix "!"  (ENot)      ]
-  , [ opL    "|"  (EBOr)      ]
-  , [ opL    "^"  (EBXor)     ]
-  , [ opL    "&"  (EBAnd)     ]
-  , [ opL    "+"  (EPlus)
-    , opL    "-"  (EMinus)    ]
-  , [ opL    "*"  (EMult)
-    , opL    "/"  (EDiv)
-    , opL    "%"  (EMod)      ]
-  , [ opL    "==" (EEq)
-    , opL    "!=" (ENEq)      ]
-  , [ opL    ">"  (EGT)
-    , opL    ">=" (EGTE)
-    , opL    "<=" (ELTE)
-    , opL    "<"  (ELT)       ]
-  , [ opL    "||" (ELOr)      ]
-  , [ opL    "&&" (ELAnd)     ] ]
+  [ [ prefix "-"  EUnOp
+    , prefix "+"  EUnOp  ]
+  , [ prefix "~"  EUnOp
+    , prefix "!"  EUnOp  ]
+  , [ opL    "|"  EBinOp ]
+  , [ opL    "^"  EBinOp ]
+  , [ opL    "&"  EBinOp ]
+  , [ opL    "+"  EBinOp
+    , opL    "-"  EBinOp ]
+  , [ opL    "*"  EBinOp
+    , opL    "/"  EBinOp
+    , opL    "%"  EBinOp ]
+  , [ opL    "==" EBinOp
+    , opL    "!=" EBinOp ]
+  , [ opL    ">"  EBinOp
+    , opL    ">=" EBinOp
+    , opL    "<=" EBinOp
+    , opL    "<"  EBinOp ]
+  , [ opL    "||" EBinOp ]
+  , [ opL    "&&" EBinOp ] ]
   where
     prefix c f =
-      Prefix (reservedOp c >> return f)
+      Prefix (reservedOp c >> return (f c))
     op c f assoc =
-      Infix (reservedOp c >> return f) assoc
+      Infix (reservedOp c >> return (f c)) assoc
     opL = flip flip AssocLeft . op
 
 -- |An atom used in expressions.

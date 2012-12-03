@@ -1,4 +1,4 @@
-module MAlice.Parsing.ParserState
+module MAlice.Parser.ParserState
        ( MParser
        , ParserState(..)
        , initState

@@ -12,7 +12,7 @@ import MAlice.Language.AST
 import MAlice.Language.SymbolTable
 import MAlice.Language.Types
 import MAlice.Language.Utilities
-import MAlice.Parsing.ParserState
+import MAlice.Parser.ParserState
 import Prelude hiding (fail)
 import Control.Monad hiding (fail)
 
@@ -68,33 +68,38 @@ testEqOp t1 t2 =
   then succeed Boolean
   else fail "two equal, comparable types" (t1, t2)
 
+isBNumOp :: String -> Bool
+isBNumOp = flip elem ["+", "-", "*", "/", "%", "|", "&", "^"]
+
+isBBoolOp :: String -> Bool
+isBBoolOp = flip elem ["||", "&&"]
+
+isRelOp :: String -> Bool
+isRelOp = flip elem [">", ">=", "<=", "<"]
+
+isEqOp :: String -> Bool
+isEqOp = flip elem ["==", "!="]
+
+isUBoolOp :: String -> Bool
+isUBoolOp = (==) "!"
+
+isUNumOp = flip elem ["+", "-", "~"]
+
 -- |Infers the type of an expression. This returns Maybe Type so the type
 -- checker can stop checking expressions with known type errors in them.
 -- Since procedures are specified as returning Nothing, expressions with
 -- procedure calls automatically fail.
 inferType :: Expr -> MParser (Maybe Type)
+inferType ex@(EBinOp op e1 e2)
+  | isBNumOp  op = inferBinary testBNumOp  e1 e2 ex
+  | isBBoolOp op = inferBinary testBBoolOp e1 e2 ex
+  | isRelOp   op = inferBinary testRelOp   e1 e2 ex
+  | isEqOp    op = inferBinary testEqOp    e1 e2 ex
+inferType ex@(EUnOp op e1)
+  | isUBoolOp op = inferUnary testUBoolOp e1 ex
+  | isUNumOp  op = inferUnary testUNumOp  e1 ex
 inferType ex =
   case ex of
-    EPlus e1 e2  -> inferBinary testBNumOp e1 e2 ex
-    EMinus e1 e2 -> inferBinary testBNumOp e1 e2 ex
-    EMult e1 e2  -> inferBinary testBNumOp e1 e2 ex
-    EDiv e1 e2   -> inferBinary testBNumOp e1 e2 ex
-    EMod e1 e2   -> inferBinary testBNumOp e1 e2 ex
-    EBAnd e1 e2  -> inferBinary testBNumOp e1 e2 ex
-    EBOr e1 e2   -> inferBinary testBNumOp e1 e2 ex
-    EBXor e1 e2  -> inferBinary testBNumOp e1 e2 ex
-    ELOr e1 e2   -> inferBinary testBBoolOp e1 e2 ex
-    ELAnd e1 e2  -> inferBinary testBBoolOp e1 e2 ex
-    EGT e1 e2    -> inferBinary testRelOp e1 e2 ex
-    EGTE e1 e2   -> inferBinary testRelOp e1 e2 ex
-    ELTE e1 e2   -> inferBinary testRelOp e1 e2 ex
-    ELT e1 e2    -> inferBinary testRelOp e1 e2 ex
-    EEq e1 e2    -> inferBinary testEqOp e1 e2 ex
-    ENEq e1 e2   -> inferBinary testEqOp e1 e2 ex
-    ENot e1      -> inferUnary testUBoolOp e1 ex
-    EInv e1      -> inferUnary testUNumOp e1 ex
-    ENegate e1   -> inferUnary testUNumOp e1 ex
-    EPositive e1 -> inferUnary testUNumOp e1 ex
     EId var      -> getIdType var IdVariable ex
     EString _    -> return (Just Sentence)
     EInt _       -> return (Just Number)
