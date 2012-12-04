@@ -1,0 +1,113 @@
+.global
+
+0x0:  allocate __global_arrSize 
+0x1:  __t0 = 15 
+0x2:  __global_arrSize = __t0 
+0x3:  allocate __global_arr [ __global_arrSize ] 
+
+.stack
+
+search:
+0x26:  allocate __result_search_166 
+0x27:  param __toFind_hatta_165 
+0x28:  __t15 = call binarySearch 1 
+0x29:  __result_search_166 = __t15 
+0x2a:  __t16 = 0 
+0x2b:  __t17 = __result_search_166 != __t16 
+0x2c:  ifFalse __t17 goto L8 
+0x2d:  __t18 = "Found " 
+0x2e:  print __t18 
+0x2f:  print __toFind_hatta_165 
+0x30:  __t19 = " in array\n" 
+0x31:  print __t19 
+0x32:  goto L6 
+L6:
+0x39:  end search 
+L8:
+0x33:  __t20 = "Unable to find " 
+0x34:  print __t20 
+0x35:  print __toFind_hatta_165 
+0x36:  __t21 = " in array\n" 
+0x37:  print __t21 
+0x38:  goto L6 
+
+binarySearch:
+0x4:  allocate __key_binarySearch_164 0 
+0x5:  allocate __low_binarySearch_164 
+0x6:  allocate __high_binarySearch_164 
+0x7:  allocate __mid_binarySearch_164 
+0x8:  __t1 = 0 
+0x9:  __low_binarySearch_164 = __t1 
+0xa:  __t2 = 1 
+0xb:  __t3 = __global_arrSize - __t2 
+0xc:  __high_binarySearch_164 = __t3 
+L0:
+0xd:  __t4 = __low_binarySearch_164 > __high_binarySearch_164 
+0xe:  if __t4 goto L1 
+0xf:  __t5 = __low_binarySearch_164 + __high_binarySearch_164 
+0x10:  __t6 = 2 
+0x11:  __t7 = __t5 / __t6 
+0x12:  __mid_binarySearch_164 = __t7 
+0x13:  __t8 = __global_arr [ __mid_binarySearch_164 ] > __key_binarySearch_164 
+0x14:  ifFalse __t8 goto L3 
+0x15:  __t9 = 1 
+0x16:  __t10 = __mid_binarySearch_164 - __t9 
+0x17:  __high_binarySearch_164 = __t10 
+0x18:  goto L2 
+L2:
+0x21:  goto L0 
+L3:
+0x19:  __t11 = __global_arr [ __mid_binarySearch_164 ] < __key_binarySearch_164 
+0x1a:  ifFalse __t11 goto L4 
+0x1b:  __t12 = 1 
+0x1c:  __t13 = __mid_binarySearch_164 + __t12 
+0x1d:  __low_binarySearch_164 = __t13 
+0x1e:  goto L2 
+L4:
+0x1f:  return __key_binarySearch_164 
+0x24:  end binarySearch 
+L1:
+0x22:  __t14 = 0 
+0x23:  return __t14 
+
+hatta:
+0x25:  allocate __toFind_hatta_165 
+0x3a:  allocate __i_hatta_165 
+0x3b:  __t22 = 0 
+0x3c:  __i_hatta_165 = __t22 
+L9:
+0x3d:  __t23 = __i_hatta_165 == __global_arrSize 
+0x3e:  if __t23 goto L10 
+0x3f:  __t24 = 1 
+0x40:  __t25 = __i_hatta_165 - __t24 
+0x41:  __t26 = 2 
+0x42:  __t27 = __t25 / __t26 
+0x43:  __t28 = __i_hatta_165 + __t27 
+0x44:  __global_arr [ __i_hatta_165 ] = __t28 
+0x45:  __t29 = "Setting arr's " 
+0x46:  print __t29 
+0x47:  print __i_hatta_165 
+0x48:  __t30 = " piece to " 
+0x49:  print __t30 
+0x4a:  print __global_arr [ __i_hatta_165 ] 
+0x4b:  __t31 = "\n" 
+0x4c:  print __t31 
+0x4d:  __i_hatta_165 = __i_hatta_165 + 1 
+0x4e:  goto L9 
+L10:
+0x4f:  __t32 = 2 
+0x50:  __toFind_hatta_165 = __t32 
+0x51:  call search 0 
+0x52:  __t33 = 6 
+0x53:  __toFind_hatta_165 = __t33 
+0x54:  call search 0 
+0x55:  __t34 = 7 
+0x56:  __toFind_hatta_165 = __t34 
+0x57:  call search 0 
+0x58:  __t35 = 10 
+0x59:  __toFind_hatta_165 = __t35 
+0x5a:  call search 0 
+0x5b:  __t36 = 12 
+0x5c:  __toFind_hatta_165 = __t36 
+0x5d:  call search 0 
+0x5e:  end hatta 
