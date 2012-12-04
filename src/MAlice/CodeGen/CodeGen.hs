@@ -1,10 +1,10 @@
-module MAlice.CodeGeneration.CodeGen where
+module MAlice.CodeGen.CodeGen where
 
 import Control.Monad.State
 import Control.Monad.Identity
-import MAlice.CodeGeneration.CodeGenState as C
-import MAlice.CodeGeneration.ASM
-import MAlice.Parsing.ParserState as P
+import MAlice.CodeGen.CodeGenState as C
+import MAlice.CodeGen.ASM
+import MAlice.Parser.ParserState as P
 import MAlice.Language.AST
 
 --Replace Identity by IO/whatever to get more functionality

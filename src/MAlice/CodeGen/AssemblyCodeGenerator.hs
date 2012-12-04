@@ -1,57 +1,25 @@
-module MAlice.CodeGeneration.AssemblyCodeGenerator where
+module MAlice.CodeGen.AssemblyCodeGenerator where
 
-import MAlice.CodeGeneration.CodeGen
-import MAlice.CodeGeneration.ASM
+import MAlice.CodeGen.CodeGen
+import MAlice.CodeGen.ASM
 import MAlice.Language.AST
 import MAlice.Language.Types
 import Data.List
 
 generateCode :: Program -> CodeGen [Instruction]
-generateCode p =
-  return $ generateProgram p
+generateCode = generateProgram
 
-generateProgram :: Program -> [Instruction]
-generateProgram (Program (DeclList ds))
-   = do
-       declInstrs <- generateDecls ds
-       return declInstrs
-
-generateDecls :: [Decl] -> [Instruction]
-generateDecls decls
-  = undefined
+generateProgram :: Program -> CodeGen [Instruction]
+generateProgram (Program (DeclList ds)) =
+  generateDecls ds
 
 uniqueID :: CodeGen String
 uniqueID = undefined
 
--- List of available registers for use.
-allRegs :: [Register]
-allRegs =  [RAX, RBX, RCX, RDX, R8, R9, R10, R11, R12, R13, R14]
-
--- Save free registers onto the stack.
-saveRegs  :: [Register] -> CodeGen [Instruction]
-saveRegs regsNotInUse 
-  = do
-     return (saveRegs' allRegs regsNotInUse)
-saveRegs' :: [Register] -> [Register] -> CodeGen [Instruction]
-saveRegs' [] regsNotInUse
-  = do
-      return ([])
-saveRegs' (x:xs) regsNotInUse
-  | elem x regsNotInUse 
-    = do 
-        return (saveRegs' xs regsNotInUse)
-  | otherwise           
-    = do
-        return ([Push (Reg x)]) --  ++ saveRegs' xs regsNotInUse)
-
--- Restore the registers from the stack.
-restRegs :: [Register] -> CodeGen [Instruction]
-restRegs regsNotInUse = reverse (restRegs' allRegs regsNotInUse)
-restRegs' :: [Register] -> [Register] -> [Instruction]
-restRegs' [] regsNotInUse = []
-restRegs' (x:xs) regsNotInUse
-  | elem x regsNotInUse = restRegs' xs regsNotInUse
-  | otherwise           = [Pop (Reg x)] ++ restRegs' xs regsNotInUse
+generateDecls :: [Decl] -> CodeGen [Instruction]
+generateDecls ds = do
+  is <- mapM generateDecl ds
+  return $ concat is
 
 -- Takes a program and gives and output.
 {- generateCode :: Program -> [Instruction]
@@ -60,10 +28,11 @@ generateCode (Program (DeclList []))
 generateCode (Program (DeclList (decl:decls)))
   = (generateDecl decl allRegs) ++ (generateCode (Program (DeclList decls))) -}
 
--- Turns a decleration and a list of available registers and gives a list of output.
+-- Turns a decleration and a list of available registers and gives a list of
+-- output.
 generateDecl :: Decl -> [Register] -> CodeGen [Instruction]
-generateDecl (VarDecl _ _) _
-  = [] -- We don't need to write code to declare a variable.
+generateDecl (VarDecl t ident) _
+  = insertSymbol
 generateDecl (VAssignDecl _ ident expr) rest
   = generateExpr expr rest -- Leave the result of the expression in the first free register, track location.
 generateDecl (VArrayDecl t ident expr) regsNotInUse
@@ -126,13 +95,13 @@ generateStmt (SIf _) regs
 
 generateExpr :: Expr -> [Register] -> CodeGen [Instruction]
 generateExpr (EPlus expr1 expr2) (r1:r2:rest)
-  =    (generateDualExpr expr1 expr2 (r1:r2:rest))         
+  =    (generateDualExpr expr1 expr2 (r1:r2:rest))
     ++ [Add (Reg r1) (Reg r2)]
 generateExpr (EMinus expr1 expr2) (r1:r2:rest)
   =    (generateDualExpr expr1 expr2 (r1:r2:rest))
     ++ [Sub (Reg r1) (Reg r2)]
 generateExpr (EMult expr1 expr2) (r1:r2:rest)
-  =    (generateDualExpr expr1 expr2 (r1:r2:rest))         
+  =    (generateDualExpr expr1 expr2 (r1:r2:rest))
     ++ [Mul (Reg r1) (Reg r2)]
 generateExpr (EDiv expr1 expr2) (r1:r2:rest)
   =    (generateDualExpr expr1 expr2 (r1:r2:rest))
@@ -149,10 +118,10 @@ generateExpr (EMod expr1 expr2) (r1:r2:rest)
       where
         (r1':r2':rest') = (r1:r2:rest)\\[RDX]
 generateExpr (EBAnd expr1 expr2) (r1:r2:rest)
-  =    (generateDualExpr expr1 expr2 (r1:r2:rest)) 
+  =    (generateDualExpr expr1 expr2 (r1:r2:rest))
     ++ [And (Reg r1) (Reg r2)]
 generateExpr (EBOr expr1 expr2) (r1:r2:rest)
-  =    (generateDualExpr expr1 expr2 (r1:r2:rest))   
+  =    (generateDualExpr expr1 expr2 (r1:r2:rest))
     ++ [Or (Reg r1) (Reg r2)]
 generateExpr (EBXor expr1 expr2) (r1:r2:rest)
   =    (generateDualExpr expr1 expr2 (r1:r2:rest))
@@ -232,7 +201,7 @@ generateExpr (ELT expr1 expr2) (r1:r2:rest)
          ++ (generateExpr expr1 (r1:rest))
          ++ [Test (Reg r1) (Reg r2)]
 generateExpr (ENEq expr1 expr2) (r1:r2:rest)
-  = if weight expr1 >= weight expr2 
+  = if weight expr1 >= weight expr2
     then    (generateExpr expr1 (r1:r2:rest))
          ++ (generateExpr expr2 (r2:rest))
          ++ [Test (Reg r1) (Reg r2)]
@@ -242,7 +211,7 @@ generateExpr (ENEq expr1 expr2) (r1:r2:rest)
 generateExpr (ENot expr) (r1:rest)
   =    (generateExpr expr (r1:rest))
     ++ [Test (Reg r1) (Reg r1)]
-generateExpr (EInv expr) (r:rest) 
+generateExpr (EInv expr) (r:rest)
   =    (generateExpr expr (r:rest))
     ++ [Not (Reg r)]
 generateExpr (EId expr) (r:rest)
@@ -282,20 +251,20 @@ generateBoolTest r l1 l2
     ++ [Label l2]
 
 weight :: Expr -> Int
-weight (EInt _)    
+weight (EInt _)
   = 1
-weight (EString _) 
+weight (EString _)
   = 1
-weight (EId _)     
+weight (EId _)
   = 1
-weight (EChar _)   
+weight (EChar _)
   = 1
 weight (EArrRef _ expr)
   = 1
 {-
 weight (ECall ident (APList exprs))
   = min (map (weight) (exprs))
-weight (  expr)    
+weight (  expr)
   = weight expr
 weight (binary expr1 expr2)
   = min [cost1, cost2]
@@ -303,14 +272,25 @@ weight (binary expr1 expr2)
       cost1 = max [weight expr1, (weight expr2) + 1]
       cost2 = max [(weight expr1) + 1, weight expr2] -}
 
--- Generate code for producing parameters and push them right to left onto stack.
+-- Generate code for producing parameters and push them right to left onto stack
 generateActualParams :: [Expr] -> [Register] -> [IO ()]
 generateActualParams [] _
   = []
-generateActualParams (x:xs) (r:rest)
-  = generateActualParams xs (r:rest) ++ generateExpr x (r:rest) ++ [putStrLn (show (Push r))]
+generateActualParams (x:xs) rs@(r:_) =
+  generateActualParams xs rs ++ generateExpr x rs ++ [putStrLn (show (Push r))]
 
-outputSequence :: [IO ()] -> IO ()
-outputSequence [] = return ()
-outputSequence (x:xs) = do x
-                           outputSequence xs
+-- List of available registers for use.
+allRegs :: [Register]
+allRegs = [RAX, RBX, RCX, RDX, R8, R9, R10, R11, R12, R13, R14]
+
+-- Save free registers onto the stack.
+--saveRegs  :: [Register] -> [Instruction]
+--saveRegs regsNotInUse =
+--  map (\reg -> Mov (Reg reg) Push) .
+--  filter (not . flip elem regsNotInUse) $ allRegs
+
+-- Restore the registers from the stack.
+--restoreRegs :: [Register] -> [Instruction]
+--restoreRegs regsNotInUse =
+--  map (\reg -> Mov Pop (Reg reg)) .
+--  filter (not . flip elem regsNotInUse) $ reverse allRegs

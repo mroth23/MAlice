@@ -1,18 +1,18 @@
-module MAlice.CodeGeneration.ASM where
+module MAlice.CodeGen.ASM where
 
 import MAlice.Language.Types
 import MAlice.Language.AST
 import Data.Word
 
-data Register 
-  = RAX | RBX | RCX | RDX | R8 | R9 | R10 | R11 | R12 | R13 | R14 
+data Register
+  = RAX | RBX | RCX | RDX | R8 | R9 | R10 | R11 | R12 | R13 | R14
   deriving (Show, Eq)
 
-data Instruction 
+data Instruction
   = Mov   Operand Operand
   | Push  Operand
   | Pop   Operand
-  | Add   Operand Operand 
+  | Add   Operand Operand
   | Sub   Operand Operand
   | Mul   Operand Operand
   | Div   Operand Operand
@@ -66,7 +66,7 @@ getVariableLoc key (_:rest)
 
 -- Inserts a variable location into the variable store.
 insertVariableLoc :: VariableLoc -> VariableStore -> VariableStore
-insertVariableLoc varLoc varStore 
+insertVariableLoc varLoc varStore
   = varStore ++ [varLoc]
 
 
