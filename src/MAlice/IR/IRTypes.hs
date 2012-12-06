@@ -1,5 +1,6 @@
 module MAlice.IR.Types where
 
+import qualified MAlice.Types as MAlice
 import qualified MAlice.Language.AST as AST
 import MAlice.Language.Types
 
@@ -7,6 +8,11 @@ import qualified Data.Map as M
 import Control.Monad
 import Control.Monad.Identity
 import Control.Monad.State
+
+newtype IRProgram = IRProgram { code :: IRCode }
+
+showProgram :: IRProgram -> IO ()
+showProgram irp = mapM_ print $ code irp
 
 type IRCode = [Instr]
 
@@ -61,14 +67,13 @@ uniqueNumber = do
   return rval
 
 uniqueLabel = do
-  rval <- lblCount `liftM` get
-  updateState $ \st -> st { lblCount = rval + 1 }
+  rval <- uniqueNumber
   return $ EId ("__t" ++ rval)
 
 data Instr =
   IAlloc Label                          | --Allocate a new variable
   IAllocArr Label Operand               | --Allocate an array
-  IAllocParam Label Int                 | --Allocate a function param
+  IAllocParam Label Int MAlice.Type     | --Allocate a function param
   IAssignB Label Operand String Operand | --x := y `op` z
   IAssignU Label String Operand         | --x := op y
   ICopy Label Label                     | --x := y
@@ -77,9 +82,11 @@ data Instr =
   ICGoto Label Label                    | --if a goto label
   INCGoto Label Label                   | --if !a goto label
   ILabel Label                          | --Label:
+  IMLabel Label                         | --Method label
   IParam Label                          | --Use label as param in call
   IReturn Label                         | --Return label
   IPrint Label                          | --print label
+  IExit                                 |
   IInput Label
 
 type Label = Operand
@@ -92,9 +99,9 @@ data Operand =
   AArrRef Label Operand   | --a[ix]
   ACall Label Int           --f() with x params
 
-generateIRCode :: Program -> Either String IRCode
+generateIRCode :: Program -> Either String IRProgram
 generateIRCode (DeclList ps) =
-  Right . runIdentity $ evalStateT (genDecls ps) initState
+  Right . IRProgram . runIdentity $ evalStateT (genDecls ps) initState
 
 genDecls :: [Decl] -> CodeGen IRCode
 genDecls ds = do
@@ -133,17 +140,25 @@ generateMethods :: [Decl] -> CodeGen IRCode
 generateMethods [] = return []
 -- Function declaration
 generateMethods ((FuncDecl f ps _ body) : ds) = do
-  paramDecls <- generateFPs f ps
+  uid <- uniqueNumber
+  let fname = methodPrefix ++ f ++ "_" ++ uid
+  insertSymbol f fname
+  paramDecls <- generateFPs fname ps
   newSymbolTable
   bodyCode <- generateBody body
   removeSymbolTable
-  return $ [ILabel f] ++ paramDecls ++ bodyCode ++ generateMethods ds
+  return $
+    [IMLabel fname] ++ paramDecls ++ bodyCode ++ [IExit] ++ generateMethods ds
 -- Procedure declaration
 generateMethods ((ProcDecl f ps body) : ds) = do
-  paramDecls <- generateFPs f ps
+  uid <- uniqueNumber
+  let fname = methodPrefix ++ f ++ "_" ++ uid
+  insertSymbol f fname
+  paramDecls <- generateFPs fname ps
   newSymbolTable
   bodyCode <- generateBody body
-  return $ [ILabel f] ++ paramDecls ++ bodyCode ++ generateMethods ds
+  return $
+    [IMLabel fname] ++ paramDecls ++ bodyCode [IExit]++ generateMethods ds
 -- Other cases are dealt with in generateGlobals
 generateMethods (d:ds) = generateMethods ds
 
@@ -156,7 +171,7 @@ generateFP f ((Param t var), ix) = do
   uid <- uniqueNumber
   let pname = paramPrefix ++ f ++ "_" ++ var ++ uid
   insertSymbol var pname
-  return $ IAllocParam (AId pname) ix
+  return $ IAllocParam (AId pname) ix t
 
 generateBody :: Body -> CodeGen IRCode
 generateBody (DeclBody ds cst) = do
@@ -174,31 +189,36 @@ generateDecls (DeclList ds) =
 
 generateDecl :: Decl -> CodeGen IRCode
 generateDecl (VarDecl typ var) = do
-  let vname = AId (localPrefix ++ var)
+  uid <- uniqueNumber
+  let vname = AId (localPrefix ++ var ++ "_" ++ uid)
   return [IAlloc vname]
 -- A declaration with assignment
 generateDecl (VAssignDecl typ var e) = do
   (lbl, code) <- generateExpr e
-  let vname = AId (localPrefix ++ var)
+  uid <- uniqueNumber
+  let vname = AId (localPrefix ++ var ++ "_" ++ uid)
   return $ [IAlloc vname] ++ code ++ [ICopy vname lbl]
 -- An array declaration
 generateDecl (VArrayDecl typ var e) = do
   (lbl, code) <- generateExpr e
-  let vname = AId (localPrefix ++ var)
+  uid <- uniqueNumber
+  let vname = AId (localPrefix ++ var ++ "_" ++ uid)
   return $ code ++ [AllocArr vname lbl]
 -- A function declaration
 generateDecl (FuncDecl f ps _ body) = do
-  paramDecls <- generateFPs f ps
-  bodyCode <- generateBody body
   uid <- uniqueNumber
   let fname = AId (methodPrefix ++ f ++ "_" ++ uid)
+  insertSymbol f fname
+  paramDecls <- generateFPs f ps
+  bodyCode <- generateBody body
   return $ [ILabel fname] ++ paramDecls ++ bodyCode
 -- A procedure declaration
 generateDecl (ProcDecl f ps body) = do
-  paramDecls <- generateFPs f ps
-  bodyCode <- generateBody body
   uid <- uniqueNumber
   let fname = AId (methodPrefix ++ f ++ "_" ++ uid)
+  insertSymbol f fname
+  paramDecls <- generateFPs f ps
+  bodyCode <- generateBody body
   return $ [ILabel fname] ++ paramDecls ++ bodyCode
 
 generateExpr :: Expr -> CodeGen (Operand, IRCode)
@@ -211,7 +231,9 @@ generateExpr (EUnOp op e) = do
   (l, ec) <- generateExpr e
   rLbl <- uniqueLabel
   return (rLbl, ec ++ [IAssignU rLbl op l])
-generateExpr (EId var) = undefined --Look up in symbol table
+generateExpr (EId var) = do
+  vname <- getDefinition var
+  (AId vname, [])
 generateExpr (EString str) = do
   return (AString rLbl str, [])
 generateExpr (EInt i) = do
@@ -220,13 +242,15 @@ generateExpr (EChar c) = do
   return (AChar c, [])
 generateExpr (EArrRef arr e) = do
   (ix, code) <- generateExpr e
-  return (AArrRef (AId arr) ix, code)
+  aname <- getDefinition arr
+  return (AArrRef (AId aname) ix, code)
 generateExpr (EBkt e) =
   generateExpr e
 generateExpr (ECall f aps@(APList as)) = do
   paramCode <- generateAPs aps
   rLbl <- uniqueLabel
-  return (ACall (AId f) (length as), paramCode)
+  fname <- getDefinition f
+  return (ACall (AId fname) (length as), paramCode)
 
 generateAPs :: ActualParams -> CodeGen IRCode
 generateAPs (APList aps) =
