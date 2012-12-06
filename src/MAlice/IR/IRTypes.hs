@@ -1,5 +1,6 @@
 module MAlice.IR.Types where
 
+import qualified MAlice.Types as MAlice
 import qualified MAlice.Language.AST as AST
 import MAlice.Language.Types
 
@@ -66,14 +67,13 @@ uniqueNumber = do
   return rval
 
 uniqueLabel = do
-  rval <- lblCount `liftM` get
-  updateState $ \st -> st { lblCount = rval + 1 }
+  rval <- uniqueNumber
   return $ EId ("__t" ++ rval)
 
 data Instr =
   IAlloc Label                          | --Allocate a new variable
   IAllocArr Label Operand               | --Allocate an array
-  IAllocParam Label Int                 | --Allocate a function param
+  IAllocParam Label Int MAlice.Type     | --Allocate a function param
   IAssignB Label Operand String Operand | --x := y `op` z
   IAssignU Label String Operand         | --x := op y
   ICopy Label Label                     | --x := y
@@ -171,7 +171,7 @@ generateFP f ((Param t var), ix) = do
   uid <- uniqueNumber
   let pname = paramPrefix ++ f ++ "_" ++ var ++ uid
   insertSymbol var pname
-  return $ IAllocParam (AId pname) ix
+  return $ IAllocParam (AId pname) ix t
 
 generateBody :: Body -> CodeGen IRCode
 generateBody (DeclBody ds cst) = do
