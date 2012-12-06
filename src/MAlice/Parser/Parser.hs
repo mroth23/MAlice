@@ -90,17 +90,20 @@ decls = (lexeme $ do
 -- <cont'>   = <terminator> | too <terminator> | of <expr> <terminator>
 varDecl :: MParser Decl
 varDecl = (try $
-  do { var <- identifier
+  do { recordPosition
+     ; var <- identifier
      ; (do { reserved "was"
            ; reserved "a"
            ; t <- vtype
              --Case 1: Variable declaration
            ; (do { terminator
                  ; insertSymbol var (Just t) IdVariable []
+                 ; clearPosition
                  ; return $ VarDecl t var }) <|>
              (do { reserved "too"
                  ; terminator
                  ; insertSymbol var (Just t) IdVariable []
+                 ; clearPosition
                  ; return $ VarDecl t var }) <|>
              --Case 2: Variable declaration with assignment
              (do { reserved "of"
@@ -110,6 +113,7 @@ varDecl = (try $
                  ; checkExpr t e (show $ VAssignDecl t var e)
                  ; clearPosition
                  ; insertSymbol var (Just t) IdVariable []
+                 ; clearPosition
                  ; return $ VAssignDecl t var e })
            }) <|>
        --Case 3: Array / reference type declaration
@@ -120,7 +124,7 @@ varDecl = (try $
            ; terminator
            -- Check that array index is an integer expression
            ; checkExpr Number e (show $ VArrayDecl t var e)
-           ; clearPosition
+           ; clearPosition; clearPosition
            ; insertSymbol var (Just . RefType $ t) IdVariable []
            ; return $ VArrayDecl t var e })
      }) <?> "variable declaration"
@@ -150,9 +154,9 @@ methodDecl =
         (do { reserved "looking-glass"
             ; f <- identifier
             ; args <- formalParams
+            ; enterMethod f Nothing IdProcedure args
             -- Same as in function declaration, except we don't
             -- have a return type
-            ; enterMethod f Nothing IdProcedure args
             ; b <- body
             ; exitMethod
             ; return $ ProcDecl f args b })
@@ -180,6 +184,7 @@ formalParam :: MParser FormalParam
 formalParam = (lexeme $ do
   t <- vtype
   var <- identifier
+  --insertSymbol var (Just t) IdVariable []
   return $ Param t var) <?> "formal parameter"
 
 -- |Parses the various kinds of allowed body blocks. A body block can either
@@ -273,11 +278,13 @@ exprStmt = (do {
   (do { reserved "said"
       ; reserved "Alice"
       ; terminator
+      ; checkExpr_ e1
       ; clearPosition
       ; return $ SPrint e1 })     <|>
   -- Print #2
   (do { reserved "spoke"
       ; terminator
+      ; checkExpr_ e1
       ; clearPosition
       ; return $ SPrint e1 }) }) <?> "function statement"
 

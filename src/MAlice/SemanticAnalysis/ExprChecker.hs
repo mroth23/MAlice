@@ -1,5 +1,6 @@
 module MAlice.SemanticAnalysis.ExprChecker
        ( checkExpr
+       , checkExpr_
        , inferType
        , TestResult(..)
        , getArrayType
@@ -38,7 +39,7 @@ testBNumOp :: Type -> Type -> TestResult
 testBNumOp t1 t2 =
   if (isNum t1 && isNum t2 && t1 == t2)
   then succeed t1
-  else fail "numeric types on binary numeric operation" (t1, t2)
+  else fail "numeric, matching types on binary numeric operation" (t1, t2)
 
 -- |Check the type for a unary boolean operation
 testUBoolOp :: Type -> TestResult
@@ -172,3 +173,8 @@ checkExpr expected expr context = do
     then return ()
     else logError . TypeError $
          "Expected " ++ show expected ++ ", got " ++ show actual'
+
+checkExpr_ :: Expr -> MParser ()
+checkExpr_ expr = do
+  _ <- inferType expr
+  return ()

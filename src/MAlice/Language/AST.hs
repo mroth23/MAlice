@@ -83,11 +83,12 @@ instance Show Expr where
   show (EBinOp op e1 e2) = show e1 ++ " " ++ op ++ " " ++ show e2
   show (EUnOp op e1) = op ++ "(" ++ show e1 ++ ")"
   show (EId ident) = ident
-  show (EString str) = show str
+  show (EString str) = str
   show (EInt int) = show int
   show (EChar c) = show c
   show (EArrRef ident e1) = ident ++ "'s (" ++ show e1 ++ ") piece"
   show (EBkt e1) = "(" ++ show e1 ++ ")"
+  show (ECall f aps) = f ++ "(" ++ show aps ++ ")"
 
 data ActualParams =
   APList [Expr]
