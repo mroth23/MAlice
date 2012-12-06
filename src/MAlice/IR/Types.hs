@@ -65,7 +65,7 @@ globalPrefix = "__global_"
 paramPrefix = "__param_"
 localPrefix = "__var_"
 methodPrefix = "__m_"
-labelPrefix = "__"
+labelPrefix = "__label_"
 
 uniqueNumber = do
   rval <- lblCount `liftM` get
@@ -92,9 +92,9 @@ methodLabel var = do
   uid <- uniqueNumber
   return $ methodPrefix ++ var ++ "_" ++ uid
 
-labelLabel var = do
+labelLabel = do
   uid <- uniqueNumber
-  return $ labelPrefix ++ var ++ "_" ++ uid
+  return $ AId (labelPrefix ++ uid)
 
 data Instr =
   IAlloc Label                          | --Allocate a new variable

@@ -201,14 +201,14 @@ generateStmt (SCall f aps@(APList as)) = do
   paramCode <- generateAPs aps
   return $ paramCode ++ [ICall (AId f) (length as)]
 generateStmt (SLoop expr cst) = do
-  l1 <- uniqueLabel
-  l2 <- uniqueLabel
+  l1 <- labelLabel
+  l2 <- labelLabel
   (cond, code) <- generateExpr expr
   loopBody <- generateCompoundStmt cst
   return $ [ILabel l1] ++ code ++ [ICGoto cond l2] ++
     loopBody ++ [IGoto l1] ++ [ILabel l2]
 generateStmt (SIf ifs) = do
-  endLbl <- uniqueLabel
+  endLbl <- labelLabel
   ifClauses <- generateIfClauses ifs endLbl
   return $ ifClauses ++ [ILabel endLbl]
 
@@ -220,7 +220,7 @@ generateIfClause :: Label ->  IfClause -> CodeGen Code
 generateIfClause end (If cond cst) = do
   (cl, code) <- generateExpr cond
   ifBody <- generateCompoundStmt cst
-  endIf <- uniqueLabel
+  endIf <- labelLabel
   return $ code ++ [INCGoto cl endIf] ++ ifBody ++ [IGoto end] ++ [ILabel endIf]
 generateIfClause _ (Else cst) = do
   elseBody <- generateCompoundStmt cst
