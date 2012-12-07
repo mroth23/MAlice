@@ -1,7 +1,16 @@
+module MAlice.CodeGen.JavaByteCodeInstr where 
+
+type JProgram = [JInstr]
+
 data JInstr =
   Class Label              | -- Class definition with name.
   SuperClass               | -- Default super class is java/lang/Object.
+  Field Label FType        | -- Creates a new variable with label and type.
+  Getfield Label FType     | -- Gets field value from objectref.
+  Putfield Label           | -- Puts a objectref in the field.
   Call Label FParams RType | -- Call method with params and return type.
+  ALoad_0                  | -- Load reference onto stack from local var 0.
+  ALoad_1                  | -- Load object in local variable 1 onto stack.
   ILoad Int                | -- Pushes value of local var. (Integer)
   IStore Int               | -- Pops value into local var. (Integer)
   Ldc Constant             | -- Push constant.
@@ -40,6 +49,17 @@ data JInstr =
 data Constant =
   ConsI Int   | 
   ConsS String
+
+type FParams = [FParam]
+data FParam =
+  FInt     |
+  FString  |
+  FArray
+
+data FType =
+  FInt    |
+  FString |
+  FArray  
 
 type Label = String
 type AType = Int
