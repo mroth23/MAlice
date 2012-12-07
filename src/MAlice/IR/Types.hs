@@ -114,7 +114,43 @@ data Instr =
   IPrint Label                          | --print label
   IExit                                 |
   IInput Label
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Instr where
+  show (IAlloc lbl) =
+    "\tallocate " ++ show lbl
+  show (IAllocArr lbl size) =
+    "\tallocate " ++ show lbl ++ "[" ++ show size ++ "]"
+  show (IAllocParam lbl num typ) =
+    "\tallocate " ++ show lbl ++ " " ++ show num ++ " " ++ show typ
+  show (IAssignB res l1 op l2) =
+    "\t" ++ show res ++ " := " ++ show l1 ++ " " ++ op ++ " " ++ show l2
+  show (IAssignU res op l1) =
+    "\t" ++ show res ++ " := " ++ op ++ " " ++ show l1
+  show (ICopy l1 l2) =
+    "\t" ++ show l1 ++ " := " ++ show l2
+  show (ICall l1 args) =
+    "\tcall " ++ show l1 ++ " " ++ show args
+  show (IGoto l1) =
+    "\tgoto " ++ show l1
+  show (ICGoto l1 l2) =
+    "\tif " ++ show l1 ++ " goto " ++ show l2
+  show (INCGoto l1 l2) =
+    "\tif !" ++ show l1 ++ " goto " ++ show l2
+  show (ILabel l1) =
+    show l1 ++ ":"
+  show (IMLabel l1 t) =
+    show l1 ++ " :: " ++ show t ++ ":"
+  show (IParam l1) =
+    "\tparam " ++ show l1
+  show (IReturn l1) =
+    "\treturn " ++ show l1
+  show (IPrint l1) =
+    "\tprint " ++ show l1
+  show (IExit) =
+    "\tret"
+  show (IInput l1) =
+    "\tinput " ++ show l1
 
 type Label = Operand
 
@@ -125,4 +161,12 @@ data Operand =
   AChar Char              | --x := Char literal
   AArrRef Label Operand   | --a[ix]
   ACall Label Int           --f() with x params
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show Operand where
+  show (AId s) = s
+  show (AString s) = show s
+  show (AInt i) = show i
+  show (AChar c) = show c
+  show (AArrRef l op) = show l ++ "[" ++ show op ++ "]"
+  show (ACall f n) = "call " ++ show f ++ " " ++ show n
