@@ -30,12 +30,14 @@ testAssignOp t1 t2 =
 -- |Checks that a function call is to a function identifier and has the right
 -- number and types of arguments.
 checkFuncCall :: String -> ActualParams -> MParser ()
-checkFuncCall f args = checkCall IdFunction f args $ show (ECall f args)
+checkFuncCall f as =
+  checkCall IdFunction f as $ show (ECall (Just Unknown) f as)
 
 -- |Checks that a procedure call is to a procedure identifier and has the right
 -- number and types of arguments.
 checkProcCall :: String -> ActualParams -> MParser ()
-checkProcCall f args = checkCall IdProcedure f args $ show (ECall f args)
+checkProcCall f as =
+  checkCall IdProcedure f as $ show (ECall (Just Unknown) f as)
 
 -- |Helper function to type-check method calls.
 checkCall :: IdentifierType -> String -> ActualParams -> String -> MParser ()
@@ -78,10 +80,10 @@ withIdExistenceCheck f success = do
 
 -- |Checks an assignment between two expressions for validity.
 checkAssignment :: Expr -> Expr -> MParser ()
-checkAssignment e1@(EId var) e2 = do
+checkAssignment e1@(EId _ var) e2 = do
   withIdKindCheck IdVariable var $
     \e -> checkAssignment' (returnType e) e1 e2
-checkAssignment e1@(EArrRef var _) e2 = do
+checkAssignment e1@(EArrRef _ var _) e2 = do
   atype <- getArrayType var e1
   checkAssignment' atype e1 e2
 checkAssignment (EBkt e1) e2 =
@@ -102,16 +104,14 @@ checkAssignment' t1 e1 e2 = do
 
 -- |Checks whether the given expression can be read into.
 checkInput :: Expr -> MParser ()
-checkInput e@(EId var) = do
-  v <- getIdType var IdVariable e
+checkInput e@(EId v var) = do
   setContext $ "what was " ++ (show e) ++ "?"
   maybeCheck (return ()) v $ \v' ->
     case v' of
       (RefType _) -> logError . TypeError $ "Can't read in to reference type"
       _           -> return ()
 
-checkInput e@(EArrRef arr _) = do
-  atype <- getArrayType arr e
+checkInput e@(EArrRef atype arr _) = do
   maybeCheck (return ()) atype $ \atype' ->
     case atype' of
       (RefType _) -> logError . TypeError $ "Can't read in to reference type"

@@ -11,9 +11,9 @@ data Decls =
   deriving (Eq, Show)
 
 data Decl =
-  VarDecl Type Ident |
-  VAssignDecl Type Ident Expr |
-  VArrayDecl Type Ident Expr |
+  VarDecl Type Ident                    |
+  VAssignDecl Type Ident Expr           |
+  VArrayDecl Type Ident Expr            |
   FuncDecl Ident FormalParams Type Body |
   ProcDecl Ident FormalParams Body
   deriving (Eq)
@@ -40,7 +40,7 @@ data FormalParam =
 
 data Body =
   DeclBody Decls CompoundStmt |
-  StmtBody CompoundStmt |
+  StmtBody CompoundStmt       |
   EmptyBody
   deriving (Eq, Show)
 
@@ -49,16 +49,16 @@ data CompoundStmt =
   deriving (Eq, Show)
 
 data Stmt =
-  SBody Body |
-  SNull |
-  SAssign Expr Expr |
-  SInc Expr |
-  SDec Expr |
-  SReturn Expr |
-  SPrint Expr |
-  SInput Expr |
+  SBody Body               |
+  SNull                    |
+  SAssign Expr Expr        |
+  SInc Expr                |
+  SDec Expr                |
+  SReturn Expr             |
+  SPrint Expr              |
+  SInput Expr              |
   SCall Ident ActualParams |
-  SLoop Expr CompoundStmt |
+  SLoop Expr CompoundStmt  |
   SIf [IfClause]
   deriving (Eq, Show)
 
@@ -68,27 +68,30 @@ data IfClause =
   deriving (Eq, Show)
 
 data Expr =
-  EBinOp String Expr Expr |
-  EUnOp String Expr |
-  EId Ident |
-  EString String |
-  EInt IntLiteral |
-  EChar Char |
-  EArrRef Ident Expr |
-  EBkt Expr |
-  ECall Ident ActualParams
+  EBinOp String Expr Expr         |
+  EUnOp String Expr               |
+  EId (Maybe Type) Ident          |
+  EString String                  |
+  EInt IntLiteral                 |
+  EChar Char                      |
+  EArrRef (Maybe Type) Ident Expr |
+  EBool Bool                      |
+  --there is no way to construct Booleans in MAlice source
+  EBkt Expr                       |
+  ECall (Maybe Type) Ident ActualParams
   deriving (Eq)
 
 instance Show Expr where
-  show (EBinOp op e1 e2) = show e1 ++ " " ++ op ++ " " ++ show e2
-  show (EUnOp op e1) = op ++ "(" ++ show e1 ++ ")"
-  show (EId ident) = ident
-  show (EString str) = show str
-  show (EInt int) = show int
-  show (EChar c) = show c
-  show (EArrRef ident e1) = ident ++ "'s (" ++ show e1 ++ ") piece"
-  show (EBkt e1) = "(" ++ show e1 ++ ")"
-  show (ECall f aps) = f ++ "(" ++ show aps ++ ")"
+  show (EBinOp op e1 e2)    = show e1 ++ " " ++ op ++ " " ++ show e2
+  show (EUnOp op e1)        = op ++ "(" ++ show e1 ++ ")"
+  show (EId _ ident)        = ident
+  show (EString str)        = show str
+  show (EInt int)           = show int
+  show (EChar c)            = show c
+  show (EBool b)            = show b
+  show (EArrRef _ ident e1) = ident ++ "'s (" ++ show e1 ++ ") piece"
+  show (EBkt e1)            = "(" ++ show e1 ++ ")"
+  show (ECall _ f aps)      = f ++ "(" ++ show aps ++ ")"
 
 data ActualParams =
   APList [Expr]
