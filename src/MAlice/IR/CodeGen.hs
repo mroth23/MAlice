@@ -139,7 +139,7 @@ generateExpr (EUnOp op e) = do
   (l, ec) <- generateExpr e
   rLbl <- uniqueLabel
   return (rLbl, ec ++ [IAssignU rLbl op l])
-generateExpr (EId var) = do
+generateExpr (EId t var) = do
   vname <- getDefinition var
   return (AId vname, [])
 generateExpr (EString str) = do
@@ -148,13 +148,13 @@ generateExpr (EInt i) = do
   return (AInt (fromInteger i), [])
 generateExpr (EChar c) = do
   return (AChar c, [])
-generateExpr (EArrRef arr e) = do
+generateExpr (EArrRef t arr e) = do
   (ix, code) <- generateExpr e
   aname <- getDefinition arr
   return (AArrRef (AId aname) ix, code)
 generateExpr (EBkt e) =
   generateExpr e
-generateExpr (ECall f aps@(APList as)) = do
+generateExpr (ECall t f aps@(APList as)) = do
   paramCode <- generateAPs aps
   rLbl <- uniqueLabel
   fname <- getDefinition f

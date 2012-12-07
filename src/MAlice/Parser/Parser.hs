@@ -451,16 +451,20 @@ exprTerm = try . lexeme $
   do { var <- identifier
      ; (do { reserved "'s"
            ; ix <- expr
-           ; let arrRefExpr = EArrRef var ix
+           ; let arrRefExpr = EArrRef (Just Unknown) var ix
            ; checkExpr Number ix (show arrRefExpr)
-           ; _ <- getArrayType var arrRefExpr
+           ; t <- getArrayType var arrRefExpr
            ; reserved "piece"
-           ; return arrRefExpr })              <|>
+           ; return $ EArrRef t var ix })      <|>
        (do { args <- actualParams
-           ; return $ ECall var args })        <|>
+           ; let callExpr = ECall (Just Unknown) var args
+           ; t <- getIdType var IdFunction callExpr
+           ; return $ ECall t var args })        <|>
        (do { notFollowedBy $
              reserved "'s" <|> (actualParams >> return ())
-           ; return $ EId var }) }             <|>
+           ; let varExpr = EId (Just Unknown) var
+           ; t <- getIdType var IdVariable varExpr
+           ; return $ EId t var }) }           <|>
   do { str <- stringLit; return $ EString str } <|>
   do { char <- charLit; return $ EChar char }   <?>
   "expression atom")

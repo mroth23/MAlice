@@ -101,13 +101,35 @@ inferType ex@(EUnOp op e1)
   | isUNumOp  op = inferUnary testUNumOp  e1 ex
 inferType ex =
   case ex of
-    EId var      -> getIdType var IdVariable ex
-    EString _    -> return (Just Sentence)
-    EInt _       -> return (Just Number)
-    EChar _      -> return (Just Letter)
-    EArrRef v _  -> getArrayType v ex
-    EBkt expr    -> inferType expr
-    ECall f args -> getIdType f IdFunction ex
+    EId t _        -> return t
+    EString _      -> return (Just Sentence)
+    EInt _         -> return (Just Number)
+    EChar _        -> return (Just Letter)
+    EArrRef t v _  -> return t
+    EBkt expr      -> inferType expr
+    ECall t _ _    -> return t
+
+-- A pure version of inferType, that doesn't report errors. This assumes that
+-- the program type checks correctly, and must only be used after the parsing
+-- stage. Used e.g. in the code generator for JVM to infer types of expressions.
+inferTypeP :: Expr -> Maybe Type
+inferTypeP ex@(EBinOp op e1 e2)
+  | isBNumOp  op = inferTypeP e1
+  | isBBoolOp op = inferTypeP e1
+  | isRelOp   op = Just Boolean
+  | isEqOp    op = Just Boolean
+inferTypeP ex@(EUnOp op e1)
+  | isUBoolOp op = Just Boolean
+  | isUNumOp  op = inferTypeP e1
+inferTypeP ex =
+  case ex of
+    EId t _        -> t
+    EString _      -> Just Sentence
+    EInt _         -> Just Number
+    EChar _        -> Just Letter
+    EArrRef t v _  -> t
+    EBkt expr      -> inferTypeP expr
+    ECall t _ _    -> t
 
 -- |Helper function used to type-check unary expressions.
 -- To be used in conjunction with any of the testU##### functions.

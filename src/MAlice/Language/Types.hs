@@ -3,7 +3,7 @@ module MAlice.Language.Types where
 {- It's impossible to construct boolean types,
    but they are necessary for type checking -}
 data Type =
-  Number | Letter | Sentence | Boolean | RefType Type
+  Number | Letter | Sentence | Boolean | RefType Type | Unknown
   deriving (Eq)
 
 instance Show Type where
@@ -17,6 +17,7 @@ instance Show Type where
 isEq :: Type -> Bool
 isEq Number = True
 isEq Letter = True
+isEq Boolean = True
 isEq _      = False
 
 -- Returns True if the type is numeric
