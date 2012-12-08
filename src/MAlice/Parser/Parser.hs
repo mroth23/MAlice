@@ -447,7 +447,7 @@ opTable =
 -- |An atom used in expressions.
 exprTerm = try . lexeme $
   (parens expr <|>
-  do { num <- intLit; return $ EInt num }       <|>
+  do { num <- intLit; return $ EInt (fromInteger num) } <|>
   do { var <- identifier
      ; (do { reserved "'s"
            ; ix <- expr
@@ -455,18 +455,18 @@ exprTerm = try . lexeme $
            ; checkExpr Number ix (show arrRefExpr)
            ; t <- getArrayType var arrRefExpr
            ; reserved "piece"
-           ; return $ EArrRef t var ix })      <|>
+           ; return $ EArrRef t var ix })              <|>
        (do { args <- actualParams
            ; let callExpr = ECall (Just Unknown) var args
            ; t <- getIdType var IdFunction callExpr
-           ; return $ ECall t var args })        <|>
+           ; return $ ECall t var args })              <|>
        (do { notFollowedBy $
              reserved "'s" <|> (actualParams >> return ())
            ; let varExpr = EId (Just Unknown) var
            ; t <- getIdType var IdVariable varExpr
-           ; return $ EId t var }) }           <|>
-  do { str <- stringLit; return $ EString str } <|>
-  do { char <- charLit; return $ EChar char }   <?>
+           ; return $ EId t var }) }                   <|>
+  do { str <- stringLit; return $ EString str }         <|>
+  do { char <- charLit; return $ EChar char }           <?>
   "expression atom")
 
 -- |Parses the parameters as they appear in the program, a list of expressions

@@ -145,7 +145,7 @@ generateExpr (EId t var) = do
 generateExpr (EString str) = do
   return (AString str, [])
 generateExpr (EInt i) = do
-  return (AInt (fromInteger i), [])
+  return (AInt i, [])
 generateExpr (EChar c) = do
   return (AChar c, [])
 generateExpr (EArrRef t arr e) = do

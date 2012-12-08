@@ -101,4 +101,4 @@ instance Show ActualParams where
     concatMap ((++ ", ") . show) (init es) ++ (show . last $ es)
 
 type Ident = String
-type IntLiteral = Integer
+type IntLiteral = Int
