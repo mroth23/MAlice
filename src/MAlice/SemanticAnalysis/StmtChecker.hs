@@ -86,8 +86,6 @@ checkAssignment e1@(EId _ var) e2 = do
 checkAssignment e1@(EArrRef _ var _) e2 = do
   atype <- getArrayType var e1
   checkAssignment' atype e1 e2
-checkAssignment (EBkt e1) e2 =
-  checkAssignment e1 e2
 checkAssignment e1 e2 = do
   setContext $ (show e1) ++ " became " ++ (show e2)
   logError . TypeError $

@@ -152,8 +152,6 @@ generateExpr (EArrRef t arr e) = do
   (ix, code) <- generateExpr e
   aname <- getDefinition arr
   return (AArrRef (AId aname) ix, code)
-generateExpr (EBkt e) =
-  generateExpr e
 generateExpr (ECall t f aps@(APList as)) = do
   paramCode <- generateAPs aps
   rLbl <- uniqueLabel
