@@ -2,10 +2,18 @@ module MAlice.Optimisation.ASTOptimiser where
 
 import Data.Bits
 import Data.Char
+import Data.Maybe
 import MAlice.Language.AST
 
+--Repeat until AST doesn't change anymore. This is somewhat inefficient but
+--should generally be fine.
 optimiseAST :: Program -> Program
-optimiseAST = id
+optimiseAST p =
+  if optP == p
+  then p
+  else optimiseAST optP
+  where
+    optP = optimiseProgram p
 
 optimiseProgram :: Program -> Program
 optimiseProgram (Program ds) =
@@ -35,33 +43,43 @@ optimiseBody b = b
 
 optimiseCompoundStmt :: CompoundStmt -> CompoundStmt
 optimiseCompoundStmt (CSList ss) =
-  CSList (map optimiseStmt ss)
+  CSList $ catMaybes (optimiseStmts ss)
 
-optimiseStmt :: Stmt -> Stmt
+optimiseStmts :: [Stmt] -> [Maybe Stmt]
+optimiseStmts ((SAssign a e):(SAssign b e2):ss)
+  | e2 == a = (Just (SAssign b e)) : (optimiseStmts ss)
+optimiseStmts (s : ss) = (optimiseStmt s) : (optimiseStmts ss)
+
+optimiseStmt :: Stmt -> Maybe Stmt
 optimiseStmt (SBody b) =
-  SBody (optimiseBody b)
-optimiseStmt (SAssign e1 e2) =
-  SAssign (optimiseExpr e1) (optimiseExpr e2)
+  case b of
+    EmptyBody -> Nothing
+    body      -> Just $ SBody (optimiseBody b)
+optimiseStmt (SAssign e1 e2)
+  | e1 == e2   = Nothing
+  | otherwise = Just $ SAssign (optimiseExpr e1) (optimiseExpr e2)
 optimiseStmt (SInc e) =
-  SInc (optimiseExpr e)
+  Just $ SInc (optimiseExpr e)
 optimiseStmt (SDec e) =
-  SDec (optimiseExpr e)
+  Just $ SDec (optimiseExpr e)
 optimiseStmt (SReturn e) =
-  SReturn (optimiseExpr e)
+  Just $ SReturn (optimiseExpr e)
 optimiseStmt (SPrint e) =
-  SPrint (optimiseExpr e)
+  Just $ SPrint (optimiseExpr e)
 optimiseStmt (SCall i a) =
-  SCall i (optimiseAPs a)
+  Just $ SCall i (optimiseAPs a)
 optimiseStmt (SLoop e l) =
-  SLoop (optimiseExpr e) (optimiseCompoundStmt l)
+  Just $ SLoop (optimiseExpr e) (optimiseCompoundStmt l)
 optimiseStmt (SIf c) =
-  SIf (map optimiseIfClause c)
+  Just $ SIf $ catMaybes (map optimiseIfClause c)
 
-optimiseIfClause :: IfClause -> IfClause
+optimiseIfClause :: IfClause -> Maybe IfClause
 optimiseIfClause (If e c) =
-  If (optimiseExpr e) (optimiseCompoundStmt c)
+  case optimiseExpr e of
+    EBool False -> Nothing
+    expr        -> Just $ If expr (optimiseCompoundStmt c)
 optimiseIfClause (Else c) =
-  Else (optimiseCompoundStmt c)
+  Just $ Else (optimiseCompoundStmt c)
 
 intBinOps =
   [ ("+", (+))
@@ -120,11 +138,24 @@ optimiseExpr (EBinOp "*" (EInt 0) e) = EInt 0
 optimiseExpr (EBinOp "*" e (EInt 0)) = EInt 0
 optimiseExpr (EBinOp "*" (EInt 1) e) = e
 optimiseExpr (EBinOp "*" e (EInt 1)) = e
+optimiseExpr (EBinOp "*" e (EUnOp "-" (EInt 1))) = EUnOp "-" e
+optimiseExpr (EBinOp "*" (EUnOp "-" (EInt 1)) e) = EUnOp "-" e
 optimiseExpr (EBinOp "/" (EInt 1) e) = e
 optimiseExpr (EBinOp "/" e (EInt 1)) = e
 optimiseExpr (EBinOp "/" (EInt 0) e) = EInt 0
+optimiseExpr (EBinOp "/" e (EUnOp "-" (EInt 1))) = EUnOp "-" e
+optimiseExpr (EBinOp "/" e1 e2)
+  | e1 == e2 = EInt 1
+optimiseExpr (EBinOp "&&" (EBool False) e) = EBool False
+optimiseExpr (EBinOp "&&" e (EBool False)) = EBool False
+optimiseExpr (EBinOp "||" (EBool True) e) = EBool True
+optimiseExpr (EBinOp "||" e (EBool True)) = EBool True
 optimiseExpr (EBinOp op e1 e2) =
   EBinOp op (optimiseExpr e1) (optimiseExpr e2)
+optimiseExpr (EUnOp "-" (EInt i)) = EInt (negate i)
+optimiseExpr (EUnOp "+" (EInt i)) = EInt i
+optimiseExpr (EUnOp "~" (EInt i)) = EInt (complement i)
+optimiseExpr (EUnOp "!" (EBool b)) = EBool (not b)
 optimiseExpr e = e
 
 optimiseAPs :: ActualParams -> ActualParams
