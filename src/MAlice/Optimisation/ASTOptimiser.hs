@@ -73,7 +73,7 @@ optimiseStmt (SLoop e l) =
   Just $ SLoop (optimiseExpr e) (optimiseCompoundStmt l)
 optimiseStmt (SIf c) =
   Just $ SIf $ catMaybes (map optimiseIfClause c)
-optimiseStmt s = s
+optimiseStmt s = Just s
 
 
 optimiseIfClause :: IfClause -> Maybe IfClause
