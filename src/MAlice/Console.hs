@@ -23,7 +23,7 @@ compile code name = do
   (parsedAST, _) <- parseCode code name
   let optAST = Opt.optimiseAST parsedAST
       byteCode = Java.translateProgram optAST
-  return $ Java.showJavaProgram optAST
+  return $ Java.showJavaProgram byteCode
   --irCode <- generateIR optAST
   --return $ IR.showProgram irCode
 
