@@ -8,7 +8,7 @@ import qualified MAlice.Parser.Parser as MP
 import qualified MAlice.Parser.ParserState as MP
 import qualified MAlice.Language.AST as AST
 import qualified MAlice.Optimisation.ASTOptimiser as Opt
-
+import qualified MAlice.CodeGen.JavaByteCode as Java
 main :: IO ()
 main = do
   args <- getArgs
@@ -22,8 +22,10 @@ compile :: String -> String -> Either String (IO ())
 compile code name = do
   (parsedAST, _) <- parseCode code name
   let optAST = Opt.optimiseAST parsedAST
-  irCode <- generateIR optAST
-  return $ IR.showProgram irCode
+      byteCode = Java.translateProgram optAST
+  return $ Java.showJavaProgram optAST
+  --irCode <- generateIR optAST
+  --return $ IR.showProgram irCode
 
 parseCode :: String -> String -> Either String (AST.Program, MP.ParserState)
 parseCode code name =
