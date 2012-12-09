@@ -46,6 +46,7 @@ optimiseCompoundStmt (CSList ss) =
   CSList $ catMaybes (optimiseStmts ss)
 
 optimiseStmts :: [Stmt] -> [Maybe Stmt]
+optimiseStmts [] = []
 optimiseStmts ((SAssign a e):(SAssign b e2):ss)
   | e2 == a = (Just (SAssign b e)) : (optimiseStmts ss)
 optimiseStmts (s : ss) = (optimiseStmt s) : (optimiseStmts ss)
@@ -72,6 +73,8 @@ optimiseStmt (SLoop e l) =
   Just $ SLoop (optimiseExpr e) (optimiseCompoundStmt l)
 optimiseStmt (SIf c) =
   Just $ SIf $ catMaybes (map optimiseIfClause c)
+optimiseStmt s = s
+
 
 optimiseIfClause :: IfClause -> Maybe IfClause
 optimiseIfClause (If e c) =
