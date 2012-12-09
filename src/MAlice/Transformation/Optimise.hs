@@ -1,4 +1,4 @@
-module MAlice.Optimisation.ASTOptimiser where
+module MAlice.Transformation.Optimise where
 
 import Data.Bits
 import Data.Char
