@@ -6,13 +6,19 @@ import MAlice.Language.Types
 import MAlice.SemanticAnalysis.ExprChecker
 import Data.Char
 
-thisClass = "myclass"
+thisClass = "Myclass"
 
 translateProgram :: Program -> JProgram
 translateProgram (Program (DeclList decls))
   = [Class thisClass] ++
     [SuperClass]      ++
-    decls'
+    moveFieldsToTop(
+      mergeConstructors(
+        [MainMethod]      ++
+        [Constructor []]  ++
+        decls'
+      )
+    )
       where
         (decls', varTable, methTable) = translateGlobalDecls decls [] []
 
@@ -89,6 +95,7 @@ translateGlobalDecl (FuncDecl ident (FPList formalParams) t body) varTable methT
 translateGlobalDecl (ProcDecl ident (FPList formalParams) body) varTable methTable
   = ([Func ident param "V"]                     ++
      translateBody body varTable methTable'     ++
+     [Return]                                   ++
      [Endmethod],
      varTable, methTable')
        where 
@@ -236,16 +243,23 @@ translateStmt (SReturn ex) varTable methTable
       -- Insert return type, requires lookup
       , varTable, methTable)
 translateStmt (SPrint ex) varTable methTable
-  = ([Getstatic "java/lang/String/out" "Ljava/io/PrintStream;"] ++
+  = ([Getstatic "java/lang/System/out" "Ljava/io/PrintStream;"] ++
      (translateExpr ex varTable methTable)                      ++
-     [Invokevirtual "java/io/PrintStream/println" t' "V"], varTable, methTable)
+     [Invokevirtual "java/io/PrintStream/print" t' "V"], varTable, methTable)
   where
     (Just t) = inferTypeP ex
     t'       = translateToJType t 
 translateStmt (SInput (EId t ident)) varTable methTable
   = undefined
 translateStmt (SCall ident (APList exprs)) varTable methTable
-  =  undefined
+  = ([ALoad_0]                                ++
+    translateParams exprs varTable methTable  ++
+    [Invokevirtual callString paramString returnType],
+    varTable, methTable)
+      where
+        (Entry ident' paramString returnType) = lookupMethTableEntry ident methTable
+	callString                            = thisClass++"/"++ident'
+
 
 translateVarAssign :: String -> VarTable -> JProgram
 translateVarAssign ident varTable
@@ -271,7 +285,7 @@ translateExpr (EId _ ident) varTable methTable
 translateExpr (EString str) varTable methTable
   = [(Ldc (ConsS str))]
 translateExpr (EInt int) varTable methTable
-  = [ILoad int]
+  = [Ldc (ConsI int)]
 translateExpr (EChar char) varTable methTable
   = [BIPush (ord char)]
 translateExpr (EArrRef t ident expr) varTable methTable
@@ -386,4 +400,59 @@ tryLocalVar (_:rest) num
   = tryLocalVar rest num
 
 showJavaProgram :: JProgram -> IO ()
-showJavaProgram program = mapM_ print program
+showJavaProgram program
+  = putStr (getJavaProgramString program)
+getJavaProgramString :: JProgram -> String
+getJavaProgramString []
+  = ""
+getJavaProgramString ((Constructor program):rest)
+  = ".method public <init>()V\n"  ++
+    " .limit stack 100\n"                             ++
+    " .limit locals 100\n"                            ++
+    "aload_0\n"                                       ++
+    "dup\n"                                           ++
+    "invokespecial java/lang/Object/<init>()V\n"      ++
+    constructorCode                                    ++
+    "invokevirtual " ++ thisClass ++ "/hatta()V\n"    ++
+    "return\n"                                        ++
+    ".end method\n"                                   ++
+    rest'
+      where
+        constructorCode = getJavaProgramString program
+	rest'           = getJavaProgramString rest
+getJavaProgramString (instr:rest)
+  = (show instr) ++ (getJavaProgramString rest)
+
+moveFieldsToTop :: JProgram -> JProgram
+moveFieldsToTop program
+  = fields ++ rest
+    where 
+      (fields, rest) = moveFieldsToTop' program 
+moveFieldsToTop' :: JProgram -> (JProgram, JProgram)
+moveFieldsToTop' []
+  = ([], [])
+moveFieldsToTop' ((Field label t):rest)
+  = (((Field label t):fields), rest')
+    where 
+      (fields, rest') = moveFieldsToTop' rest
+moveFieldsToTop' (instr:rest)
+  = (fields, instr:rest')
+    where
+      (fields, rest') = moveFieldsToTop' rest
+
+mergeConstructors :: JProgram -> JProgram
+mergeConstructors program
+  = [Constructor (constructors)] ++ rest
+    where
+      (constructors, rest) = mergeConstructors' program
+mergeConstructors' :: JProgram -> (JProgram, JProgram)
+mergeConstructors' []
+  = ([], [])
+mergeConstructors' ((Constructor program):rest)
+  = ((program++cons), rest')
+    where
+      (cons, rest') = mergeConstructors' rest
+mergeConstructors' (instr:rest)
+  = (cons, instr:rest')
+    where
+      (cons, rest') = mergeConstructors' rest

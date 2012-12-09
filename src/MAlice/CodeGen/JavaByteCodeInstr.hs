@@ -5,6 +5,7 @@ type JProgram = [JInstr]
 data JInstr =
   Class Label              | -- Class definition with name.
   SuperClass               | -- Default super class is java/lang/Object.
+  MainMethod               | -- Main method when program executed.
   Constructor JProgram     | -- Constructor for this programs object.
   Field Label String       | -- Creates a new variable with label and type.
   Getfield Label String    | -- Gets field value from objectref.
@@ -63,15 +64,17 @@ instance Show JInstr where
   show (Class label)
     = ".class public " ++ label ++ "\n"
   show (SuperClass)
-    = ".super java/lang/Object \n"
-  show (Constructor jprogram)
-    = ".method public <init>()V \n"                 ++
-      ".limit stack 100 \b"                         ++
-      ".limit locals 100 \n"                        ++
-      "aload_0 \n"                                  ++
-      "invokespecial java/lang/Object/<init>()V \n" ++
-      show jprogram                                 ++
-      ".end method \n"
+    = ".super java/lang/Object\n"
+  show (MainMethod)
+    = ".method public static main([Ljava/lang/String;)V\n" ++
+      ".limit stack 100\n " ++
+      ".limit locals 100\n " ++
+      "new " ++ "Myclass" ++ "\n" ++
+      "dup\n" ++
+      "invokespecial " ++ "Myclass" ++ "/<init>()V \n" ++
+      "astore_0\n" ++
+      "return\n"   ++
+      ".end method\n"
   show (Field label t)
     = ".field public " ++ label ++ " " ++ t ++ "\n"
   show (Getfield label return)
@@ -84,8 +87,8 @@ instance Show JInstr where
        return ++ "\n"
   show (Func label params return)
     = ".method public " ++ 
-       label ++ "(" ++ params ++ ")" ++ 
-       return ++ "\n"
+       label ++ "(" ++ params ++ ")" ++ return ++ "\n" ++
+       ".limit stack 100\n.limit locals 100\n"
   show (ALoad num)         = "aload " ++ show num ++ "\n"
   show (ALoad_0)           = "aload_0" ++ "\n"
   show (ALoad_1)           =  "aload_1" ++ "\n"
@@ -126,6 +129,7 @@ instance Show JInstr where
   show (IAStore)           = "iastore" ++ "\n"
   show (IInc index const)  = "iinc " ++ show index ++ " " ++ show const ++ "\n"
   show (BIPush i)          = "bipush " ++ show i ++ "\n"
+  show (Endmethod)         = ".end method \n"
   show (IReturn)           = "iret" ++ "\n" 
   show (Return)            = "return" ++ "\n"
   show (Getstatic lib obj)
@@ -140,7 +144,7 @@ instance Show JInstr where
        ret ++ "\n"
 
 data Constant =
-  ConsI Integer | 
+  ConsI Int   | 
   ConsS String
 
 instance Show Constant where
