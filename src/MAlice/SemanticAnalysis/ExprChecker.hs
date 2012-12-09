@@ -2,6 +2,7 @@ module MAlice.SemanticAnalysis.ExprChecker
        ( checkExpr
        , checkExpr_
        , inferType
+       , inferTypeP
        , TestResult(..)
        , getArrayType
        , getIdType
