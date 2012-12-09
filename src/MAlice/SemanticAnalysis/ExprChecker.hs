@@ -106,7 +106,6 @@ inferType ex =
     EInt _         -> return (Just Number)
     EChar _        -> return (Just Letter)
     EArrRef t v _  -> return t
-    EBkt expr      -> inferType expr
     ECall t _ _    -> return t
 
 -- A pure version of inferType, that doesn't report errors. This assumes that
@@ -128,7 +127,6 @@ inferTypeP ex =
     EInt _         -> Just Number
     EChar _        -> Just Letter
     EArrRef t v _  -> t
-    EBkt expr      -> inferTypeP expr
     ECall t _ _    -> t
 
 -- |Helper function used to type-check unary expressions.

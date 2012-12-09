@@ -77,7 +77,6 @@ data Expr =
   EArrRef (Maybe Type) Ident Expr |
   EBool Bool                      |
   --there is no way to construct Booleans in MAlice source
-  EBkt Expr                       |
   ECall (Maybe Type) Ident ActualParams
   deriving (Eq)
 
@@ -90,7 +89,6 @@ instance Show Expr where
   show (EChar c)            = show c
   show (EBool b)            = show b
   show (EArrRef _ ident e1) = ident ++ "'s (" ++ show e1 ++ ") piece"
-  show (EBkt e1)            = "(" ++ show e1 ++ ")"
   show (ECall _ f aps)      = f ++ "(" ++ show aps ++ ")"
 
 data ActualParams =
@@ -103,4 +101,4 @@ instance Show ActualParams where
     concatMap ((++ ", ") . show) (init es) ++ (show . last $ es)
 
 type Ident = String
-type IntLiteral = Integer
+type IntLiteral = Int
