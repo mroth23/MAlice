@@ -11,10 +11,11 @@ type SymbolTable = [SymbolTableEntry]
 -- without arguments.
 data SymbolTableEntry =
   SymbolTableEntry
-  { idString :: String          -- Identifier string (name)
-  , idType :: IdentifierType    -- Identifier type
-  , returnType :: Maybe Type    -- Return type / variable type
-  , argumentTypes :: ArgTypes } -- Argument types (if any)
+  { idString       :: String         -- Identifier string (name)
+  , idType         :: IdentifierType -- Identifier type
+  , returnType     :: Maybe Type     -- Return type / variable type
+  , argumentTypes  :: ArgTypes       -- Argument types (if any)
+  , extraArguments :: [Expr] }       -- Extra arguments for lifted functions
   deriving (Eq, Show)
 
 -- |The different kinds of identifiers: Functions, Procedures and Variables
@@ -58,11 +59,12 @@ existsInTable symbol (entry:rest)
 -- |Creates a new symbol table with the given symbol added to it. This is
 -- used to update the state of the parser with new symbols.
 addSymbol :: String -> Maybe Type -> IdentifierType -> ArgTypes ->
-             SymbolTable -> SymbolTable
-addSymbol ident vtype idtype argtypes table
+             [Expr] -> SymbolTable -> SymbolTable
+addSymbol ident vtype idtype argtypes eargs table
   | existsInTable ident table = table
   | otherwise =
-      table ++ [SymbolTableEntry { idString = ident
-                                 , idType = idtype
-                                 , returnType = vtype
-                                 , argumentTypes = argtypes }]
+      table ++ [SymbolTableEntry { idString       = ident
+                                 , idType         = idtype
+                                 , returnType     = vtype
+                                 , argumentTypes  = argtypes
+                                 , extraArguments = eargs }]

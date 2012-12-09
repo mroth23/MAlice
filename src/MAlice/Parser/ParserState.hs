@@ -186,6 +186,16 @@ insertSymbol ident vartype idtype argtypes = do
   let newt = addSymbol ident vartype idtype argtypes t
   updateState $ \st -> st { symTables = newt : ts }
 
+-- |A free variable is neither defined globally nor in the current scope
+-- When it is used inside an inner function, it needs to be added to its
+-- argument list so the function can be lifted to global scope.
+isFreeVariable :: String -> MParser Bool
+isFreeVariable var = do
+  ts <- getSymbolTables
+  let notLocal  = lookupInTable v (head ts) == Nothing
+      notGlobal = lookupInTable v (last ts) == Nothing
+  return $ notLocal && notGlobal
+
 -- |Returns the name of the current scope. This is used to lookup the current
 -- function for return type checking.
 getCurrentScope :: MParser String
