@@ -70,8 +70,8 @@ abstractBody (AStmtBody acst _) = do
   cst <- abstractCompoundStmt acst
   return $ StmtBody cst
 abstractBody (ADeclBody ads acst _) = do
-  cst <- abstractCompoundStmt acst
   ds <- abstractDecls ads
+  cst <- abstractCompoundStmt acst
   return $ DeclBody ds cst
 
 abstractCompoundStmt :: ACompoundStmt -> Abs CompoundStmt

@@ -23,6 +23,7 @@ collectBody (DeclBody (DeclList ds) cst) =
   (DeclBody (DeclList decls) cst, lifted)
   where
     (lifted, decls) = collectSplit ds ([], [])
+collectBody b = (b, [])
 
 collectSplit :: [Decl] -> ([Decl], [Decl]) -> ([Decl], [Decl])
 collectSplit [] acc = acc

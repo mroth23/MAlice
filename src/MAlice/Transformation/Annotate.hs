@@ -136,7 +136,8 @@ annotateBody (DeclBody (DeclList ds) cst) = do
   rcst <- annotateCompoundStmt cst
   let fds = freeInDecls rds
       fcs = freeInCompoundStmt rcst
-  return $ ADeclBody rds rcst (union fds fcs)
+  free <- filterM (isFreeVariable . fst) (union fds fcs)
+  return $ ADeclBody rds rcst free
 annotateBody (StmtBody cst) = do
   rcst <- annotateCompoundStmt cst
   let fcs = freeInCompoundStmt rcst
