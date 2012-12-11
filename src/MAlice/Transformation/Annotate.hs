@@ -6,24 +6,25 @@ import Control.Monad
 import Control.Monad.Identity
 import Control.Monad.State
 import Data.List
+import Data.Maybe
 import MAlice.Transformation.Types
 import MAlice.Language.AST as AST
 import MAlice.Language.Types
 
-freeInDecls :: ADecls -> [String]
+freeInDecls :: ADecls -> FreeVars
 freeInDecls ds = nub $ concatMap freeInDecl ds
 
-freeInDecl :: ADecl -> [String]
+freeInDecl :: ADecl -> FreeVars
 freeInDecl (AVarDecl _ _)         = []
 freeInDecl (AVAssignDecl _ _ _ f) = f
 freeInDecl (AVArrayDecl _ _ _ f)  = f
 freeInDecl (AFuncDecl _ _ _ _ f)  = f
 freeInDecl (AProcDecl _ _ _ f)    = f
 
-freeInCompoundStmt :: ACompoundStmt -> [String]
+freeInCompoundStmt :: ACompoundStmt -> FreeVars
 freeInCompoundStmt (ACSList cst) = nub $ concatMap freeInStmt cst
 
-freeInStmt :: AStmt -> [String]
+freeInStmt :: AStmt -> FreeVars
 freeInStmt (ASBody _ f)     = f
 freeInStmt (ASNull)         = []
 freeInStmt (ASAssign _ _ f) = f
@@ -36,7 +37,7 @@ freeInStmt (ASCall _ _ f)   = f
 freeInStmt (ASLoop _ _ f)   = f
 freeInStmt (ASIf _ f)       = f
 
-freeInExpr :: AExpr -> [String]
+freeInExpr :: AExpr -> FreeVars
 freeInExpr (AEBinOp _ _ _ f)  = f
 freeInExpr (AEUnOp _ _ f)     = f
 freeInExpr (AEId _ _ f)       = f
@@ -47,18 +48,18 @@ freeInExpr (AEArrRef _ _ _ f) = f
 freeInExpr (AEBool _)         = []
 freeInExpr (AECall _ _ _ f)   = f
 
-freeInAPs :: AActualParams -> [String]
+freeInAPs :: AActualParams -> FreeVars
 freeInAPs (AAPList aps) = nub $ concatMap freeInExpr aps
 
-freeInBody :: ABody -> [String]
+freeInBody :: ABody -> FreeVars
 freeInBody (AEmptyBody) = []
 freeInBody (AStmtBody _ f) = f
 freeInBody (ADeclBody _ _ f) = f
 
-freeInIfs :: [AIfClause] -> [String]
+freeInIfs :: [AIfClause] -> FreeVars
 freeInIfs ifs = nub $ concatMap freeInIf ifs
 
-freeInIf :: AIfClause -> [String]
+freeInIf :: AIfClause -> FreeVars
 freeInIf (AIf _ _ f) = f
 freeInIf (AElse _ f) = f
 
@@ -87,12 +88,16 @@ annotateDecl (VArrayDecl typ var e) = do
 -- A function declaration
 annotateDecl (FuncDecl f ps t body) = do
   insertSymbol f f t
+  enterBlock ps
   abody <- annotateBody body
+  exitBlock
   return $ AFuncDecl f ps t abody (freeInBody abody)
 -- A procedure declaration
 annotateDecl (ProcDecl f ps body) = do
   insertSymbol f f Unknown
+  enterBlock ps
   abody <- annotateBody body
+  exitBlock
   return $ AProcDecl f ps abody (freeInBody abody)
 
 annotateExpr :: Expr -> Transform AExpr
@@ -108,14 +113,14 @@ annotateExpr (EUnOp op e) = do
 annotateExpr (EId t var) = do
   freeV <- isFreeVariable var
   if freeV
-    then return $ AEId t var [var]
+    then return $ AEId t var [(var, fromJust t)]
     else return $ AEId t var []
 annotateExpr (EArrRef t arr e) = do
   re <- annotateExpr e
   freeV <- isFreeVariable arr
   let rfs = freeInExpr re
   if freeV
-    then return $ AEArrRef t arr re (arr:rfs)
+    then return $ AEArrRef t arr re ((arr, RefType . fromJust $ t):rfs)
     else return $ AEArrRef t arr re rfs
 annotateExpr (ECall t f aps) = do
   aaps <- annotateAPs aps

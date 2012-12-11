@@ -26,20 +26,22 @@ data TState = TState { lblCount  :: Int
 initState = TState { lblCount = 0
                    , symTables = [M.empty] }
 
+type FreeVar = (String, Type)
+type FreeVars = [FreeVar]
 type ADecls = [ADecl]
 
 data ADecl =
   AVarDecl Type Ident                              |
-  AVAssignDecl Type Ident AExpr           [String] |
-  AVArrayDecl Type Ident AExpr            [String] |
-  AFuncDecl Ident FormalParams Type ABody [String] |
-  AProcDecl Ident FormalParams ABody      [String]
+  AVAssignDecl Type Ident AExpr           FreeVars |
+  AVArrayDecl Type Ident AExpr            FreeVars |
+  AFuncDecl Ident FormalParams Type ABody FreeVars |
+  AProcDecl Ident FormalParams ABody      FreeVars
   deriving (Eq, Show)
 
 data ABody =
   AEmptyBody                              |
-  AStmtBody ACompoundStmt        [String] |
-  ADeclBody ADecls ACompoundStmt [String]
+  AStmtBody ACompoundStmt        FreeVars |
+  ADeclBody ADecls ACompoundStmt FreeVars
   deriving (Eq, Show)
 
 data ACompoundStmt =
@@ -47,34 +49,34 @@ data ACompoundStmt =
   deriving (Eq, Show)
 
 data AStmt =
-  ASBody ABody               [String] |
+  ASBody ABody               FreeVars |
   ASNull                              |
-  ASAssign AExpr AExpr       [String] |
-  ASInc AExpr                [String] |
-  ASDec AExpr                [String] |
-  ASReturn AExpr             [String] |
-  ASPrint AExpr              [String] |
-  ASInput AExpr              [String] |
-  ASCall Ident AActualParams [String] |
-  ASLoop AExpr ACompoundStmt [String] |
-  ASIf [AIfClause]           [String]
+  ASAssign AExpr AExpr       FreeVars |
+  ASInc AExpr                FreeVars |
+  ASDec AExpr                FreeVars |
+  ASReturn AExpr             FreeVars |
+  ASPrint AExpr              FreeVars |
+  ASInput AExpr              FreeVars |
+  ASCall Ident AActualParams FreeVars |
+  ASLoop AExpr ACompoundStmt FreeVars |
+  ASIf [AIfClause]           FreeVars
   deriving (Eq, Show)
 
 data AIfClause =
-  AIf AExpr ACompoundStmt [String] |
-  AElse ACompoundStmt     [String]
+  AIf AExpr ACompoundStmt FreeVars |
+  AElse ACompoundStmt     FreeVars
   deriving (Eq, Show)
 
 data AExpr =
-  AEBinOp String AExpr AExpr              [String] |
-  AEUnOp String AExpr                     [String] |
-  AEId (Maybe Type) Ident                 [String] |
+  AEBinOp String AExpr AExpr              FreeVars |
+  AEUnOp String AExpr                     FreeVars |
+  AEId (Maybe Type) Ident                 FreeVars |
   AEString String                                  |
   AEInt IntLiteral                                 |
   AEChar Char                                      |
-  AEArrRef (Maybe Type) Ident AExpr       [String] |
+  AEArrRef (Maybe Type) Ident AExpr       FreeVars |
   AEBool Bool                                      |
-  AECall (Maybe Type) Ident AActualParams [String]
+  AECall (Maybe Type) Ident AActualParams FreeVars
   deriving (Eq, Show)
 
 data AActualParams =

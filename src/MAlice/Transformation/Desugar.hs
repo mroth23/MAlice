@@ -1,8 +1,10 @@
 module MAlice.Transformation.Desugar where
 
 import MAlice.Language.AST
-import MAlice.Transformation.Types
+import MAlice.Transformation.Abstract
 import MAlice.Transformation.Annotate
+import MAlice.Transformation.Types
+
 -- This module contains functions to "desugar" MAlice code. Most importantly,
 -- inner functions are lifted to global level. This is done in three passes:
 -- First, all function and procedure definitions are annotated with free
