@@ -20,7 +20,7 @@ renameFPs f (FPList ps) =
 renameFP :: String -> FormalParam -> Transform FormalParam
 renameFP f (Param t var) = do
   pname <- paramLabel var
-  insertSymbol var pname
+  insertSymbol var pname t
   return $ Param t pname
 
 renameBody :: Body -> Transform Body
@@ -41,31 +41,31 @@ renameDecls (DeclList ds) =
 renameDecl :: Decl -> Transform Decl
 renameDecl (VarDecl typ var) = do
   vname <- localLabel var
-  insertSymbol var vname
+  insertSymbol var vname typ
   return $ VarDecl typ vname
 -- A declaration with assignment
 renameDecl (VAssignDecl typ var e) = do
   ne <- renameExpr e
   vname <- localLabel var
-  insertSymbol var vname
+  insertSymbol var vname typ
   return $ VAssignDecl typ vname ne
 -- An array declaration
 renameDecl (VArrayDecl typ var e) = do
   ne <- renameExpr e
   vname <- localLabel var
-  insertSymbol var vname
+  insertSymbol var vname typ
   return $ VArrayDecl typ vname ne
 -- A function declaration
 renameDecl (FuncDecl f ps t body) = do
   fname <- methodLabel f
-  insertSymbol f fname
+  insertSymbol f fname t
   rps <- renameFPs fname ps
   rbody <- renameBody body
   return $ FuncDecl fname rps t rbody
 -- A procedure declaration
 renameDecl (ProcDecl f ps body) = do
   fname <- methodLabel f
-  insertSymbol f fname
+  insertSymbol f fname MAlice.Unknown
   rps <- renameFPs fname ps
   rbody <- renameBody body
   return $ ProcDecl fname rps rbody
@@ -111,15 +111,15 @@ renameStmt (SAssign e1 e2) = do
   re1 <- renameExpr e1
   re2 <- renameExpr e2
   return $ SAssign re1 re2
-renameStmt (SInc e) = do
+renameStmt (SInc e) =
   SInc `liftM` (renameExpr e)
-renameStmt (SDec e) = do
+renameStmt (SDec e) =
   SDec `liftM` (renameExpr e)
-renameStmt (SReturn e) = do
+renameStmt (SReturn e) =
   SReturn `liftM` (renameExpr e)
-renameStmt (SPrint e) = do
+renameStmt (SPrint e) =
   SPrint `liftM` (renameExpr e)
-renameStmt (SInput e) = do
+renameStmt (SInput e) =
   SInput `liftM` (renameExpr e)
 renameStmt (SCall f aps) = do
   raps <- renameAPs aps
