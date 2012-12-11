@@ -3,6 +3,7 @@ module MAlice.Transformation.Desugar where
 import MAlice.Language.AST
 import MAlice.Transformation.Abstract
 import MAlice.Transformation.Annotate
+import MAlice.Transformation.Collect
 import MAlice.Transformation.Types
 
 -- This module contains functions to "desugar" MAlice code. Most importantly,
@@ -14,16 +15,9 @@ import MAlice.Transformation.Types
 -- position to an appropriate place in global scope.
 
 desugarAST :: Program -> Program
-desugarAST (Program ds) =
-  Program $ desugarDecls ds
+desugarAST =
+  collect . abstract . annotateIdentifiers
 
-desugarDecls :: Decls -> Decls
-desugarDecls (DeclList ds) =
-  undefined
-  --DeclList (collect . abstract . annotateDecls $ ds)
-
-collect :: Decls -> Decls
-collect = undefined
-
-abstract :: ADecls -> Decls
-abstract = undefined
+--annotateIdentifiers :: Program -> ADecls
+--abstract :: ADecls -> Program
+--collect :: Program -> Program
