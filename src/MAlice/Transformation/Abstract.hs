@@ -24,11 +24,16 @@ getFunction k =
 
 makeAPList :: FreeVars -> [Expr]
 makeAPList fs =
-  map (\(i, t) -> EId (Just . Ref $ t) i) fs
+  map (\(i, t) -> EId (Just . makeRefType $ t) i) fs
 
 makeFPList :: FreeVars -> [FormalParam]
 makeFPList fs =
-  map (\(i, t) -> Param (Ref t) i) fs
+  map (\(i, t) -> Param (makeRefType t) i) fs
+
+makeRefType :: Type -> Type
+makeRefType t@(Ref _) = t
+makeRefType t@(RefType _) = t
+makeRefType t = Ref t
 
 abstract :: ADecls -> Program
 abstract ad = Program $ evalState (abstractDecls ad) M.empty
