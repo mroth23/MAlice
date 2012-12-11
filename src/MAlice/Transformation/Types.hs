@@ -28,6 +28,7 @@ initState = TState { lblCount = 0
 
 type FreeVar = (String, Type)
 type FreeVars = [FreeVar]
+
 type ADecls = [ADecl]
 
 data ADecl =
