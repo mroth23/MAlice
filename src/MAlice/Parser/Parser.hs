@@ -37,11 +37,12 @@ maliceDef =
            , T.identLetter = alphaNum <|> oneOf "_"
            , T.reservedNames =
              ["a", "Alice", "and", "ate", "became", "because", "but", "closed",
-              "contained", "drank", "either", "enough", "eventually", "found",
-              "had", "letter", "looking-glass", "maybe", "number", "of",
-              "or", "opened", "perhaps", "piece", "room", "'s", "said",
-              "sentence", "so", "spider", "spoke", "The", "then", "times",
-              "too", "unsure", "was", "what", "which", ".", ","]
+              "contained", "drank", "dream", "either", "enough", "eventually",
+              "found", "had", "letter", "lie", "looking-glass", "maybe",
+              "number", "of", "or", "opened", "perhaps", "piece", "room", "'s",
+              "said", "sentence", "so", "spider", "spoke", "The", "then",
+              "times", "too", "truth", "unsure", "was", "what", "which",
+              ".", ","]
            , T.reservedOpNames =
              ["+", "-", "*", "/", "%"
              , ">", ">=", "==", "<=", "<", "!="
@@ -405,7 +406,8 @@ vtype = lexeme $ (
   (reserved "number"   >> return Number)   <|>
   (reserved "letter"   >> return Letter)   <|>
   (reserved "sentence" >> return Sentence) <|>
-  (reserved "spider" >> vtype >>= return . RefType) <?>
+  (reserved "dream"    >> return Boolean)  <|>
+  (reserved "spider"   >> vtype >>= return . RefType) <?>
   "valid type name")
 
 -- |Builds the expression parser for arithmetic and logic expressions
@@ -448,6 +450,8 @@ opTable =
 exprTerm = try . lexeme $
   (parens expr <|>
   do { num <- intLit; return $ EInt (fromInteger num) } <|>
+  do { reserved "lie"; return $ EBool False }          <|>
+  do { reserved "truth"; return $ EBool True }         <|>
   do { var <- identifier
      ; (do { reserved "'s"
            ; ix <- expr
