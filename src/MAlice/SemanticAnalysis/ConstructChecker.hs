@@ -14,13 +14,13 @@ import MAlice.Parser.ParserState
 
 -- |Adds the method identifier to the current symbol table, creates a new
 -- symbol table for the method and puts the method's arguments in it.
-enterMethod :: String -> Maybe Type -> IdentifierType ->
+enterMethod :: String -> Type -> IdentifierType ->
                FormalParams -> MParser ()
 enterMethod f rtype idtype fps@(FPList fpl) = do
   argtypes <- inferFParamTypes fps
   insertSymbol f rtype idtype argtypes
   newSymbolTable f
-  mapM_ (\(Param t var) -> insertSymbol var (Just t) IdVariable []) fpl
+  mapM_ (\(Param t var) -> insertSymbol var t IdVariable []) fpl
 
 -- |Removes the local symbol table as all local variables go out of scope.
 exitMethod :: MParser ()

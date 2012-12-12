@@ -23,18 +23,18 @@ translateProgram (Program (DeclList decls))
     )
     )
       where
-        (decls', varTable, methTable, labelTable) 
-	           = translateGlobalDecls decls [] [] []
-	junkLabels = getJunkLabels decls'
-	decls''    = removeJunkLabels decls' junkLabels
-	decls'''   = setupInputIfRequired decls''
+        (decls', varTable, methTable, labelTable)
+                   = translateGlobalDecls decls [] [] []
+        junkLabels = getJunkLabels decls'
+        decls''    = removeJunkLabels decls' junkLabels
+        decls'''   = setupInputIfRequired decls''
 
 translateGlobalDecls :: [Decl] -> VarTable -> MethTable -> LabelTable -> (JProgram, VarTable, MethTable, LabelTable)
 translateGlobalDecls [] varTable methTable labelTable
   = ([], varTable, methTable, labelTable)
 translateGlobalDecls (decl:rest) varTable methTable labelTable
   = (decl' ++ rest', varTable'', methTable'', labelTable'')
-      where 
+      where
         (decl', varTable', methTable', labelTable')    = translateGlobalDecl decl varTable methTable labelTable
         (rest', varTable'', methTable'', labelTable'') = translateGlobalDecls rest varTable' methTable' labelTable'
 
@@ -45,17 +45,17 @@ translateLocalDecls (decl:rest) varTable methTable labelTable
   = (decl' ++ rest', varTable'', methTable'', labelTable'')
       where
         (decl', varTable', methTable', labelTable')    = translateLocalDecl decl varTable methTable labelTable
-	(rest', varTable'', methTable'', labelTable'') = translateLocalDecls rest varTable' methTable' labelTable'
-   
+        (rest', varTable'', methTable'', labelTable'') = translateLocalDecls rest varTable' methTable' labelTable'
+
 
 translateGlobalDecl :: Decl -> VarTable -> MethTable -> LabelTable -> (JProgram, VarTable, MethTable, LabelTable)
 translateGlobalDecl (VarDecl t ident) varTable methTable labelTable
   = ([Field ident t'], ((Global ident t'):varTable), methTable, labelTable)
-    where 
+    where
       t' = translateToJType t
 translateGlobalDecl (VAssignDecl (Sentence) ident expr) varTable methTable labelTable
   = ([Field ident t'] ++
-     [(Constructor 
+     [(Constructor
        ([ALoad_0]                                                         ++
        [New "java/lang/String"]                                           ++
        [Dup]                                                              ++
@@ -66,18 +66,18 @@ translateGlobalDecl (VAssignDecl (Sentence) ident expr) varTable methTable label
      (Global ident t'):varTable, methTable, labelTable')
        where
          t'                        = translateToJType Sentence
-	 (exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
+         (exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
 translateGlobalDecl (VAssignDecl t ident expr) varTable methTable labelTable
   = ([Field ident t'] ++
-     [(Constructor 
-       ([ALoad_0]                              ++                              
+     [(Constructor
+       ([ALoad_0]                              ++
        exprIntrs                               ++
        [Putfield (thisClass++"/"++ident) t'])
-      )], 
+      )],
      (Global ident t'):varTable, methTable, labelTable')
        where
          t'                       = translateToJType t
-	 (exprIntrs, labelTable') = translateExpr expr varTable methTable labelTable
+         (exprIntrs, labelTable') = translateExpr expr varTable methTable labelTable
 translateGlobalDecl (VArrayDecl t ident expr) varTable methTable labelTable
   = ([Field ident t''] ++
      [(Constructor
@@ -98,21 +98,21 @@ translateGlobalDecl (FuncDecl ident (FPList formalParams) t body) varTable methT
      varTable, methTable', labelTable'')
        where
          methTable'                 = (Entry ident param returnString):methTable
-	 varTable'                  = moveParamsToLocals formalParams varTable 1
-	 numParams                  = getNumParams formalParams
-	 param                      = makeFormalParamTypeString formalParams
-	 returnString               = makeReturnString t
-	 (bodyInstrs, labelTable'') = translateBody body varTable' methTable' labelTable
+         varTable'                  = moveParamsToLocals formalParams varTable 1
+         numParams                  = getNumParams formalParams
+         param                      = makeFormalParamTypeString formalParams
+         returnString               = makeReturnString t
+         (bodyInstrs, labelTable'') = translateBody body varTable' methTable' labelTable
 translateGlobalDecl (ProcDecl ident (FPList formalParams) body) varTable methTable labelTable
   = ([Func ident param "V" numParams]           ++
      bodyInstrs                                 ++
      [Return]                                   ++
      [Endmethod],
      varTable, methTable', labelTable')
-       where 
+       where
          methTable'                = (Entry ident param "V"):methTable
-	 varTable'                 = moveParamsToLocals formalParams varTable 1
-	 numParams                 = getNumParams formalParams
+         varTable'                 = moveParamsToLocals formalParams varTable 1
+         numParams                 = getNumParams formalParams
          param                     = makeFormalParamTypeString formalParams
          (bodyInstrs, labelTable') = translateBody body varTable' methTable' labelTable
 
@@ -150,7 +150,7 @@ moveParamToLocal (Param t ident) varTable num
 moveParamToLocal (Param Number ident) varTable
   = ([IStore num], (Local ident num t'):varTable)
     where
-      num = getNewLocalVar varTable 2 
+      num = getNewLocalVar varTable 2
       t'  = translateToJType Number
 moveParamToLocal (Param Sentence ident) varTable
   = ([AStore num], (Local ident num t'):varTable)
@@ -173,16 +173,16 @@ translateLocalDecl (VAssignDecl (Sentence) ident expr) varTable methTable labelT
      (Local ident num t'):varTable, methTable, labelTable')
        where
          t'                        = translateToJType Sentence
-	 num                       = getNewLocalVar varTable 2 
-	 (exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
-translateLocalDecl (VAssignDecl t ident expr) varTable methTable labelTable 
+         num                       = getNewLocalVar varTable 2
+         (exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
+translateLocalDecl (VAssignDecl t ident expr) varTable methTable labelTable
   = (exprInstrs ++
      [IStore num],
      (Local ident num t'):varTable, methTable, labelTable')
        where
          t'                        = translateToJType t
          num                       = getNewLocalVar varTable 2
-	 (exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
+         (exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
 translateLocalDecl (VArrayDecl t ident expr) varTable methTable labelTable
   = (exprInstrs     ++
      [Newarray t''] ++
@@ -212,14 +212,14 @@ translateStmts [] varTable methTable labelTable
   = ([], varTable, methTable, labelTable)
 translateStmts (stmt:rest) varTable methTable labelTable
   = (stmt' ++ rest', varTable'', methTable'', labelTable'')
-     where 
+     where
        (stmt', varTable', methTable', labelTable')    = translateStmt stmt varTable methTable labelTable
        (rest', varTable'', methTable'', labelTable'') = translateStmts rest varTable' methTable' labelTable'
-  
+
 translateStmt :: Stmt -> VarTable -> MethTable -> LabelTable -> (JProgram, VarTable, MethTable, LabelTable)
 translateStmt (SBody body) varTable methTable labelTable
   = (body', varTable, methTable, labelTable)
-     where 
+     where
        (body', labelTable') = translateBody body varTable methTable labelTable
 translateStmt SNull varTable methTable labelTable
   = ([], varTable, methTable, labelTable)
@@ -227,9 +227,9 @@ translateStmt (SAssign (EId t id) ex) varTable methTable labelTable
   = (exprInstrs ++
      translateVarAssign id varTable,
      varTable, methTable, labelTable')
-       where 
+       where
          (exprInstrs, labelTable') = translateExpr ex varTable methTable labelTable
--- NOT COMPLETED YET --	 
+-- NOT COMPLETED YET --
 translateStmt (SAssign (EArrRef t id ex1) ex2) varTable methTable labelTable
   = (translateVariable (lookupVarTableEntry id varTable) ++
      indexInstrs                                         ++
@@ -238,7 +238,7 @@ translateStmt (SAssign (EArrRef t id ex1) ex2) varTable methTable labelTable
      varTable, methTable, labelTable'')
        where
          (indexInstrs, labelTable') = translateExpr ex1 varTable methTable labelTable
-	 (exprInstrs, labelTable'') = translateExpr ex2 varTable methTable labelTable'
+         (exprInstrs, labelTable'') = translateExpr ex2 varTable methTable labelTable'
 translateStmt (SInc (EId t id)) varTable methTable labelTable
   = (translateVariable (lookupVarTableEntry id varTable) ++
      [IConst_1]                                          ++
@@ -260,7 +260,7 @@ translateStmt (SInc (EArrRef t ident expr)) varTable methTable labelTable
      varTable, methTable, labelTable')
       where
         tempLoc                   = getNewLocalVar varTable 2
-	(exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
+        (exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
 translateStmt (SDec (EId t ident)) varTable methTable labelTable
   = (translateVariable (lookupVarTableEntry ident varTable) ++
      [IConst_m1]                                         ++
@@ -282,23 +282,23 @@ translateStmt (SDec (EArrRef t ident expr)) varTable methTable labelTable
      varTable, methTable, labelTable')
       where
         tempLoc                   = getNewLocalVar varTable 2
-	(exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
+        (exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
 translateStmt (SReturn ex) varTable methTable labelTable
   = (exprInstrs ++
     [returnInstr],
     varTable, methTable, labelTable')
         where
-	  (exprInstrs, labelTable') = translateExpr ex varTable methTable labelTable
-	  returnInstr               = translateReturnInstr ex
+          (exprInstrs, labelTable') = translateExpr ex varTable methTable labelTable
+          returnInstr               = translateReturnInstr ex
 translateStmt (SPrint ex) varTable methTable labelTable
   = ([Getstatic "java/lang/System/out" "Ljava/io/PrintStream;"] ++
      exprInstrs                                                 ++
      charHandling                                               ++
-     [Invokevirtual "java/io/PrintStream/print" t' "V"], 
+     [Invokevirtual "java/io/PrintStream/print" t' "V"],
      varTable, methTable, labelTable')
   where
-    (Just t)                  = inferTypeP ex
-    t'                        = translateToJType t 
+    t                         = inferTypeP ex
+    t'                        = translateToJType t
     (exprInstrs, labelTable') = translateExpr ex varTable methTable labelTable
     charHandling              = printCharHandling t
 translateStmt (SInput (EId t ident)) varTable methTable labelTable
@@ -310,79 +310,79 @@ translateStmt (SInput (EId t ident)) varTable methTable labelTable
     varTable, methTable, labelTable)
       where
         t'           = translateToJTypeId t
-	scanMeth     = getScanMeth t
-	charHandling = inputCharHandling t 
+        scanMeth     = getScanMeth t
+        charHandling = inputCharHandling t
 translateStmt (SCall ident (APList exprs)) varTable methTable labelTable
   = ([ALoad_0]    ++
     paramsInstrs  ++
     [Invokevirtual callString paramString returnType],
     varTable, methTable, labelTable')
       where
-        (Entry ident' paramString returnType) 
-	  = lookupMethTableEntry ident methTable
-	callString                            
-	  = thisClass++"/"++ident'
-	(paramsInstrs, labelTable')           
-	  = translateParams exprs varTable methTable labelTable
+        (Entry ident' paramString returnType)
+          = lookupMethTableEntry ident methTable
+        callString
+          = thisClass++"/"++ident'
+        (paramsInstrs, labelTable')
+          = translateParams exprs varTable methTable labelTable
 translateStmt (SLoop expr (CSList stmts)) varTable methTable labelTable
-  = ([LLabel label] ++ 
-    exprInstrs      ++ 
-    [Ifne endLabel] ++ 
+  = ([LLabel label] ++
+    exprInstrs      ++
+    [Ifne endLabel] ++
     stmtsInstrs     ++
-    [Goto label]    ++ 
+    [Goto label]    ++
     [LLabel endLabel],
     varTable', methTable', labelTable'''')
       where
         (label, labelTable')        = generateNewLabel labelTable
-	(endLabel, labelTable'')    = generateNewLabel labelTable'
-	(exprInstrs, labelTable''') = translateExpr expr varTable methTable labelTable''
-	(stmtsInstrs, varTable', methTable', labelTable'''')
-	                            = translateStmts stmts varTable methTable labelTable'''
+        (endLabel, labelTable'')    = generateNewLabel labelTable'
+        (exprInstrs, labelTable''') = translateExpr expr varTable methTable labelTable''
+        (stmtsInstrs, varTable', methTable', labelTable'''')
+                                    = translateStmts stmts varTable methTable labelTable'''
 translateStmt (SIf clauses) varTable methTable labelTable
   = (instrs++[LLabel endLabel], varTable, methTable, labelTable'')
       where
-        (endLabel, labelTable') 
-	  = generateNewLabel labelTable
-        (instrs, varTable', methTable', labelTable'')  
-	  = translateClauses clauses varTable methTable labelTable' endLabel
+        (endLabel, labelTable')
+          = generateNewLabel labelTable
+        (instrs, varTable', methTable', labelTable'')
+          = translateClauses clauses varTable methTable labelTable' endLabel
 
 translateReturnInstr :: Expr -> JInstr
 translateReturnInstr ex
   = translateReturnInstr' (inferTypeP ex)
-translateReturnInstr' :: (Maybe Type) -> JInstr
-translateReturnInstr' (Just Number)
+translateReturnInstr' :: Type -> JInstr
+translateReturnInstr' Number
   = (IReturn)
-translateReturnInstr' (Just Letter)
+translateReturnInstr' Letter
   = (IReturn)
-translateReturnInstr' (Just Sentence)
+translateReturnInstr' Sentence
   = (AReturn)
 
 translateClauses :: [IfClause] -> VarTable -> MethTable -> LabelTable ->
                     String -> (JProgram, VarTable, MethTable, LabelTable)
 translateClauses [] varTable methTable labelTable endLabel
   = ([], varTable, methTable, labelTable)
-translateClauses (clause:rest) varTable methTable labelTable endLabel 
+translateClauses (clause:rest) varTable methTable labelTable endLabel
   = (clauses'++rest', varTable'', methTable'', labelTable'')
       where
-        (clauses', varTable', methTable', labelTable') 
-	  = translateClause clause varTable methTable labelTable endLabel
-	(rest', varTable'', methTable'', labelTable'') 
-	  = translateClauses rest varTable' methTable' labelTable' endLabel
+        (clauses', varTable', methTable', labelTable')
+          = translateClause clause varTable methTable labelTable endLabel
+        (rest', varTable'', methTable'', labelTable'')
+          = translateClauses rest varTable' methTable' labelTable' endLabel
 
 translateClause :: IfClause -> VarTable -> MethTable -> LabelTable -> String -> (JProgram, VarTable, MethTable, LabelTable)
 translateClause (If expr (CSList stmts)) varTable methTable labelTable endLabel
-  = (exprInstrs ++ 
-    [Ifeq endIf] ++ 
-    stmtsInstrs ++ 
-    [Goto endLabel] ++ 
+  = (exprInstrs ++
+    [Ifeq endIf] ++
+    stmtsInstrs ++
+    [Goto endLabel] ++
     [LLabel endIf],
     varTable', methTable', labelTable''')
     where
       (exprInstrs, labelTable')
         = translateExpr expr varTable methTable labelTable
-      (endIf, labelTable'') 
+      (endIf, labelTable'')
         = generateNewLabel labelTable'
-      (stmtsInstrs, varTable', methTable', labelTable''') 
+      (stmtsInstrs, varTable', methTable', labelTable''')
         = translateStmts stmts varTable methTable labelTable''
 translateClause (Else (CSList stmts)) varTable methTable labelTable endLabel
   = translateStmts stmts varTable methTable labelTable
@@ -421,7 +421,7 @@ arrayAccess (Global ident t) varTable
     arrayInstr
       where
         loc        = getNewLocalVar varTable 1
-	arrayInstr = getArrayInstr t
+        arrayInstr = getArrayInstr t
 getArrayInstr :: String -> JProgram
 getArrayInstr "[I" = [IAStore]
 getArrayInstr "[C" = [IAStore]
@@ -444,15 +444,15 @@ translateExpr (EBinOp op ex1 ex2) varTable methTable labelTable
     labelTable''')
       where
         (ex1Instrs, labelTable')   = translateExpr ex1 varTable methTable labelTable
-	(ex2Instrs, labelTable'')  = translateExpr ex2 varTable methTable labelTable'
-	(binInstrs, labelTable''') = translateBinOp op labelTable''
+        (ex2Instrs, labelTable'')  = translateExpr ex2 varTable methTable labelTable'
+        (binInstrs, labelTable''') = translateBinOp op labelTable''
 translateExpr (EUnOp op ex) varTable methTable labelTable
   = (exInstrs ++
     unInstrs,
     labelTable'')
       where
         (exInstrs, labelTable')  = translateExpr ex varTable methTable labelTable
-	(unInstrs, labelTable'') = translateUnOp op labelTable'
+        (unInstrs, labelTable'') = translateUnOp op labelTable'
 translateExpr (EId _ ident) varTable methTable labelTable
   = (translateVariable (lookupVarTableEntry ident varTable), labelTable)
 translateExpr (EString str) varTable methTable labelTable
@@ -468,7 +468,7 @@ translateExpr (EArrRef t ident expr) varTable methTable labelTable
     labelTable')
       where
         (exInstrs, labelTable') = translateExpr expr varTable methTable labelTable
-	entry                   = lookupVarTableEntry ident varTable
+        entry                   = lookupVarTableEntry ident varTable
 translateExpr (EBool b) varTable methTable labelTable
   | b         = ([BIPush 1], labelTable)
   | otherwise = ([BIPush 0], labelTable)
@@ -480,7 +480,7 @@ translateExpr (ECall t ident (APList exprs)) varTable methTable labelTable
       where
         (paramsInstrs, labelTable')           = translateParams exprs varTable methTable labelTable
         (Entry ident' paramString returnType) = lookupMethTableEntry ident methTable
-	callString                            = thisClass++"/"++ident'
+        callString                            = thisClass++"/"++ident'
 
 translateParams :: [Expr] -> VarTable -> MethTable -> LabelTable -> (JProgram, LabelTable)
 translateParams [] varTable methTable labelTable
@@ -536,7 +536,7 @@ translateVariable (Local ident num t)
   = [ALoad num]
 
 translateBinOp :: String -> LabelTable -> (JProgram, LabelTable)
-translateBinOp "+" labelTable  = ([IAdd], labelTable) 
+translateBinOp "+" labelTable  = ([IAdd], labelTable)
 translateBinOp "-" labelTable  = ([ISub], labelTable)
 translateBinOp "*" labelTable  = ([IMul], labelTable)
 translateBinOp "/" labelTable  = ([IDiv], labelTable)
@@ -546,7 +546,7 @@ translateBinOp "^" labelTable  = ([IXor], labelTable)
 translateBinOp "&" labelTable  = ([IAnd], labelTable)
 translateBinOp "||" labelTable = ([IOr], labelTable)
 translateBinOp "&&" labelTable = ([IAnd], labelTable)
-translateBinOp "==" labelTable 
+translateBinOp "==" labelTable
   = ([If_icmpeq label]   ++
     booleanCode,
     labelTable')
@@ -593,7 +593,7 @@ setBooleanCode labelTable
     label, labelTable'')
       where
         (label, labelTable')   = generateNewLabel labelTable
-	(label', labelTable'') = generateNewLabel labelTable'
+        (label', labelTable'') = generateNewLabel labelTable'
 
 -- After testing, if this works, can remove the LabelTable part.
 translateUnOp :: String -> LabelTable -> (JProgram, LabelTable)
@@ -615,24 +615,23 @@ translateToJType Sentence     = "Ljava/lang/String;"
 translateToJType Boolean      = "C"
 translateToJType (RefType t)  = "[" ++ translateToJType t
 translateToJType (Ref t)      = "Ljava/util/concurrrent/atomic/AtomicReference;" 
-
-translateToJTypeId :: (Maybe Type) -> String
-translateToJTypeId (Just Number)   = "I"
-translateToJTypeId (Just Letter)   = "C"
-translateToJTypeId (Just Sentence) = "Lhava/lang/String;" 
+translateToJTypeId :: Type -> String
+translateToJTypeId Number   = "I"
+translateToJTypeId Letter   = "C"
+translateToJTypeId Sentence = "Lhava/lang/String;"
 
 translateToAType :: Type -> String
 translateToAType Number = "int"
 translateToAType Letter = "int"
 
-getScanMeth :: (Maybe Type) -> String
-getScanMeth (Just Number)   = "nextInt"
-getScanMeth (Just Letter)   = "nextLine"
-getScanMeth (Just Sentence) = "nextLine"
+getScanMeth :: Type -> String
+getScanMeth Number   = "nextInt"
+getScanMeth Letter   = "nextLine"
+getScanMeth Sentence = "nextLine"
 
 -- Because we can only input strings, we take the 0th char from that string.
-inputCharHandling :: (Maybe Type) -> JProgram
-inputCharHandling (Just Letter)
+inputCharHandling :: Type -> JProgram
+inputCharHandling Letter
   = [Ldc (ConsI 0)] ++
     [Invokevirtual "java/lang/String/sharAt" "I" "C"]
 inputCharHandling _
@@ -715,21 +714,21 @@ getJavaProgramString ((Constructor program):rest)
     rest'
       where
         constructorCode = getJavaProgramString program
-	rest'           = getJavaProgramString rest
+        rest'           = getJavaProgramString rest
 getJavaProgramString (instr:rest)
   = (show instr) ++ (getJavaProgramString rest)
 
 moveFieldsToTop :: JProgram -> JProgram
 moveFieldsToTop program
   = fields ++ rest
-    where 
-      (fields, rest) = moveFieldsToTop' program 
+    where
+      (fields, rest) = moveFieldsToTop' program
 moveFieldsToTop' :: JProgram -> (JProgram, JProgram)
 moveFieldsToTop' []
   = ([], [])
 moveFieldsToTop' ((Field label t):rest)
   = (((Field label t):fields), rest')
-    where 
+    where
       (fields, rest') = moveFieldsToTop' rest
 moveFieldsToTop' (instr:rest)
   = (fields, instr:rest')

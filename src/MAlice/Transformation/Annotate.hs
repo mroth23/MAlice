@@ -94,7 +94,7 @@ annotateDecl (FuncDecl f ps t body) = do
   return $ AFuncDecl f ps t abody (freeInBody abody)
 -- A procedure declaration
 annotateDecl (ProcDecl f ps body) = do
-  insertSymbol f f Unknown
+  insertSymbol f f Void
   enterBlock ps
   abody <- annotateBody body
   exitBlock
@@ -113,14 +113,14 @@ annotateExpr (EUnOp op e) = do
 annotateExpr (EId t var) = do
   freeV <- isFreeVariable var
   if freeV
-    then return $ AEId t var [(var, fromJust t)]
+    then return $ AEId t var [(var, t)]
     else return $ AEId t var []
 annotateExpr (EArrRef t arr e) = do
   re <- annotateExpr e
   freeV <- isFreeVariable arr
   let rfs = freeInExpr re
   if freeV
-    then return $ AEArrRef t arr re ((arr, RefType . fromJust $ t):rfs)
+    then return $ AEArrRef t arr re ((arr, RefType t):rfs)
     else return $ AEArrRef t arr re rfs
 annotateExpr (ECall t f aps) = do
   aaps <- annotateAPs aps

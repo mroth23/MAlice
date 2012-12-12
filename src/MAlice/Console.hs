@@ -24,12 +24,15 @@ main = do
 
 compile :: String -> String -> Either String (IO ())
 compile code name = do
-  (parsedAST, _) <- parseCode code name
+  (parsedAST, st) <- parseCode code name
   let optAST     = T.optimiseAST parsedAST
       trans      = T.renameIdentifiers optAST
       desugared  = T.desugarAST trans
       byteCode   = J.translateProgram desugared
-  return $ J.showJavaProgram byteCode
+      warn       = case MP.warnings . MP.warnList $ st of
+        [] -> return ()
+        _  -> putStrLn . show $ MP.warnList st
+  return $ warn >> J.showJavaProgram byteCode
 --  return $ PP.pprint desugared
 
 parseCode :: String -> String -> Either String (AST.Program, MP.ParserState)

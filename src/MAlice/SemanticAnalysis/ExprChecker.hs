@@ -91,7 +91,7 @@ isUNumOp = flip elem ["+", "-", "~"]
 -- checker can stop checking expressions with known type errors in them.
 -- Since procedures are specified as returning Nothing, expressions with
 -- procedure calls automatically fail.
-inferType :: Expr -> MParser (Maybe Type)
+inferType :: Expr -> MParser Type
 inferType ex@(EBinOp op e1 e2)
   | isBNumOp  op = inferBinary testBNumOp  e1 e2 ex
   | isBBoolOp op = inferBinary testBBoolOp e1 e2 ex
@@ -103,85 +103,94 @@ inferType ex@(EUnOp op e1)
 inferType ex =
   case ex of
     EId t _        -> return t
-    EString _      -> return (Just Sentence)
-    EInt _         -> return (Just Number)
-    EChar _        -> return (Just Letter)
+    EString _      -> return Sentence
+    EInt _         -> return Number
+    EChar _        -> return Letter
+    EBool _        -> return Boolean
     EArrRef t v _  -> return t
     ECall t _ _    -> return t
 
 -- A pure version of inferType, that doesn't report errors. This assumes that
 -- the program type checks correctly, and must only be used after the parsing
 -- stage. Used e.g. in the code generator for JVM to infer types of expressions.
-inferTypeP :: Expr -> Maybe Type
+inferTypeP :: Expr -> Type
 inferTypeP ex@(EBinOp op e1 e2)
   | isBNumOp  op = inferTypeP e1
   | isBBoolOp op = inferTypeP e1
-  | isRelOp   op = Just Boolean
-  | isEqOp    op = Just Boolean
+  | isRelOp   op = Boolean
+  | isEqOp    op = Boolean
 inferTypeP ex@(EUnOp op e1)
-  | isUBoolOp op = Just Boolean
+  | isUBoolOp op = Boolean
   | isUNumOp  op = inferTypeP e1
 inferTypeP ex =
   case ex of
     EId t _        -> t
-    EString _      -> Just Sentence
-    EInt _         -> Just Number
-    EChar _        -> Just Letter
+    EString _      -> Sentence
+    EInt _         -> Number
+    EChar _        -> Letter
+    EBool _        -> Boolean
     EArrRef t v _  -> t
     ECall t _ _    -> t
 
 -- |Helper function used to type-check unary expressions.
 -- To be used in conjunction with any of the testU##### functions.
-inferUnary :: (Type -> TestResult) -> Expr -> Expr -> MParser (Maybe Type)
+inferUnary :: (Type -> TestResult) -> Expr -> Expr -> MParser Type
 inferUnary test e1 src = do
   t1 <- inferType e1
   setContext . show $ src
-  maybeCheck (return Nothing) t1 $ \t1' ->
-    case test t1' of
-      Right t  -> return (Just t)
-      Left msg -> (logError . TypeError $ msg) >> return Nothing
+  case t1 of
+    Invalid -> return Invalid
+    t1'     ->
+      case test t1' of
+        Right t  -> return t
+        Left msg -> (logError . TypeError $ msg) >> return Invalid
 
 -- |Helper function used to type-check binary expressions.
 -- To be used in conjunction with any of the testB##### functions.
 inferBinary :: (Type -> Type -> TestResult) ->
-               Expr -> Expr -> Expr -> MParser (Maybe Type)
+               Expr -> Expr -> Expr -> MParser Type
 inferBinary test e1 e2 src = do
   t1 <- inferType e1
   t2 <- inferType e2
   setContext . show $ src
-  maybeCheck2 (return Nothing) t1 t2 $ \t1' t2' ->
-    case (test t1' t2') of
-      Right t  -> return (Just t)
-      Left msg -> (logError . TypeError $ msg) >> return Nothing
+  case (t1, t2) of
+    (Invalid, _) -> return Invalid
+    (_, Invalid) -> return Invalid
+    (t1', t2')   ->
+      case (test t1' t2') of
+        Right t  -> return t
+        Left msg -> (logError . TypeError $ msg) >> return Invalid
 
 -- |Finds the type of an identifier. If it's not found or isn't of the kind
 -- IdVariable, errors are logged and a Nothing is returned so type checking
 -- on this expression can't continue.
-getIdType :: String -> IdentifierType -> Expr -> MParser (Maybe Type)
+getIdType :: String -> IdentifierType -> Expr -> MParser Type
 getIdType var expected src = do
   setContext . show $ src
   v <- findGlobalIdentifier var
   case v of
     Nothing ->
-      (logError . UnknownIdentifierError $ var) >> return Nothing
+      (logError . UnknownIdentifierError $ var) >> return Invalid
     Just e  ->
       if idType e == expected
       then return . returnType $ e
       else (logError . InvalidIdKindError $ var ++ " is of kind " ++
            show (idType e) ++ ", expected " ++ show expected)
-           >> return Nothing
+           >> return Invalid
 
 -- |Finds the item type of an array. If the identifier doesn't refer to an array
 -- , an error is logged.
-getArrayType :: String -> Expr -> MParser (Maybe Type)
+getArrayType :: String -> Expr -> MParser Type
 getArrayType var src = do
   t <- getIdType var IdVariable src
-  maybeCheck (return Nothing) t $ \t' ->
-    case t' of
-      (RefType t'') -> return (Just t'')
-      _             -> (logError . TypeError $
-                        "Expected reference (array) type, got " ++ show t)
-                       >> return Nothing
+  case t of
+    Invalid -> return Invalid
+    t'      ->
+      case t' of
+        (RefType t'') -> return t''
+        _             -> (logError . TypeError $
+                          "Expected reference (array) type, got " ++ show t)
+                         >> return Invalid
 
 -- |Checks if an expression has the expected type, if not an error is logged.
 checkExpr :: Type -> Expr -> String -> MParser ()
@@ -189,11 +198,13 @@ checkExpr expected expr context = do
   actual <- inferType expr
   -- Set context after type checking the expression
   setContext context
-  maybeCheck (return ()) actual $ \actual' ->
-    if expected == actual'
-    then return ()
-    else logError . TypeError $
-         "Expected " ++ show expected ++ ", got " ++ show actual'
+  case actual of
+    Invalid -> return ()
+    actual' ->
+      if expected == actual'
+      then return ()
+      else logError . TypeError $
+           "Expected " ++ show expected ++ ", got " ++ show actual'
 
 checkExpr_ :: Expr -> MParser ()
 checkExpr_ expr = do

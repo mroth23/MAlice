@@ -24,7 +24,7 @@ getFunction k =
 
 makeAPList :: FreeVars -> [Expr]
 makeAPList fs =
-  map (\(i, t) -> EId (Just . makeRefType $ t) i) fs
+  map (\(i, t) -> EId (makeRefType t) i) fs
 
 makeFPList :: FreeVars -> [FormalParam]
 makeFPList fs =
@@ -53,14 +53,14 @@ abstractDecl (AVArrayDecl t i ae _) = do
   e <- abstractExpr ae
   return $ VArrayDecl t i e
 abstractDecl (AFuncDecl f (FPList fs) t ab fv) = do
+  putFunction f fv
   b <- abstractBody ab
   let fps = fs ++ makeFPList fv
-  putFunction f fv
   return $ FuncDecl f (FPList fps) t b
 abstractDecl (AProcDecl f (FPList fs) ab fv) = do
+  putFunction f fv
   b <- abstractBody ab
   let fps = fs ++ makeFPList fv
-  putFunction f fv
   return $ ProcDecl f (FPList fps) b
 
 abstractBody :: ABody -> Abs Body
