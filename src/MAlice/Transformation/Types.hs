@@ -138,6 +138,7 @@ globalPrefix = "__global_"
 paramPrefix  = "__param_"
 localPrefix  = "__var_"
 labelPrefix  = "__label_"
+methodPrefix = "_m_"
 
 uniqueNumber = do
   rval <- lblCount `liftM` get
@@ -156,7 +157,9 @@ localLabel var = do
   return $ localPrefix ++ var ++ "_" ++ uid
 
 methodLabel :: String -> Transform String
-methodLabel = return
+methodLabel var = do
+  uid <- uniqueNumber
+  return $ methodPrefix ++ var ++ "_" ++ uid
 
 labelLabel = do
   uid <- uniqueNumber
