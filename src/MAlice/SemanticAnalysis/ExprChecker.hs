@@ -106,6 +106,7 @@ inferType ex =
     EString _      -> return (Just Sentence)
     EInt _         -> return (Just Number)
     EChar _        -> return (Just Letter)
+    EBool _        -> return (Just Boolean)
     EArrRef t v _  -> return t
     ECall t _ _    -> return t
 
@@ -127,6 +128,7 @@ inferTypeP ex =
     EString _      -> Just Sentence
     EInt _         -> Just Number
     EChar _        -> Just Letter
+    EBool _        -> Just Boolean
     EArrRef t v _  -> t
     ECall t _ _    -> t
 

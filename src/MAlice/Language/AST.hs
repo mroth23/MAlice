@@ -76,7 +76,6 @@ data Expr =
   EChar Char                      |
   EArrRef (Maybe Type) Ident Expr |
   EBool Bool                      |
-  --there is no way to construct Booleans in MAlice source
   ECall (Maybe Type) Ident ActualParams
   deriving (Eq)
 

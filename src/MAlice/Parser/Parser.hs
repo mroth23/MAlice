@@ -23,9 +23,7 @@ mparse code name = do
     Left err -> Left ("Parse error in " ++ show err)
     Right (ast, st) ->
       case errors . errorList $ st of
-        [] -> case warnings . warnList $ st of
-                   [] -> Right (ast, st)
-                   wl -> Left . show $ warnList st
+        [] -> Right (ast, st)
         el -> Left . show $ errorList st
 
 -- |Some basic definitions for the MAlice language
