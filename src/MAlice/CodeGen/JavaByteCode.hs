@@ -1,6 +1,7 @@
 module MAlice.CodeGen.JavaByteCode where
 
 import MAlice.CodeGen.JavaByteCodeInstr
+import MAlice.CodeGen.JavaByteCodeOptimiser
 import MAlice.Language.AST
 import MAlice.Language.Types
 import MAlice.SemanticAnalysis.ExprChecker
@@ -10,7 +11,8 @@ thisClass = "Myclass"
 
 translateProgram :: Program -> JProgram
 translateProgram (Program (DeclList decls))
-  = [Class thisClass] ++
+  = opt(
+    [Class thisClass] ++
     [SuperClass]      ++
     moveFieldsToTop(
       mergeConstructors(
@@ -18,6 +20,7 @@ translateProgram (Program (DeclList decls))
         [Constructor []]  ++
         decls'''
       )
+    )
     )
       where
         (decls', varTable, methTable, labelTable) 
@@ -89,8 +92,8 @@ translateGlobalDecl (VArrayDecl t ident expr) varTable methTable labelTable
       t''                       = "[" ++translateToJType t
       (exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
 translateGlobalDecl (FuncDecl ident (FPList formalParams) t body) varTable methTable labelTable
-  = ([Func ident param returnString]        ++
-     bodyInstrs                             ++
+  = ([Func ident param returnString numParams] ++
+     bodyInstrs                                ++
      [Endmethod],
      varTable, methTable', labelTable'')
        where
@@ -101,7 +104,7 @@ translateGlobalDecl (FuncDecl ident (FPList formalParams) t body) varTable methT
 	 returnString               = makeReturnString t
 	 (bodyInstrs, labelTable'') = translateBody body varTable' methTable' labelTable
 translateGlobalDecl (ProcDecl ident (FPList formalParams) body) varTable methTable labelTable
-  = ([Func ident param "V"]                     ++
+  = ([Func ident param "V" numParams]           ++
      bodyInstrs                                 ++
      [Return]                                   ++
      [Endmethod],
@@ -482,11 +485,41 @@ translateExpr (ECall t ident (APList exprs)) varTable methTable labelTable
 translateParams :: [Expr] -> VarTable -> MethTable -> LabelTable -> (JProgram, LabelTable)
 translateParams [] varTable methTable labelTable
   = ([], labelTable)
+translateParams ((EId (Ref Number) ident):rest) varTable methTable labelTable
+  = ([NewAtomicReference]   ++
+    [Dup]                   ++
+    makeNewVarObject        ++
+    [InvokeAtomicReference] ++
+    params,
+    labelTable')
+    where
+      (params, labelTable') = translateParams rest varTable methTable labelTable
+      makeNewVarObject      = translateObjectWrapper (Just Number) ident varTable
+
 translateParams (expr:rest) varTable methTable labelTable
   = (exprInstrs ++ params, labelTable'')
       where
         (params, labelTable')      = translateParams rest varTable methTable labelTable
         (exprInstrs, labelTable'') = translateExpr expr varTable methTable labelTable'
+
+translateObjectWrapper :: (Maybe Type) -> String -> VarTable -> JProgram
+translateObjectWrapper (Just Number) ident varTable
+  = [New "java/lang/Integer"] ++
+    [Dup]                     ++
+    identValueCode            ++
+    [Invokespecial "java/lang/Integer/<init>" "I" "V"]
+      where
+        identValueCode = translateVariable (lookupVarTableEntry ident varTable)
+translateObjectWrapper (Just Letter) ident varTable
+  = [New "java/lang/Integer"] ++
+    [Dup]                     ++
+    identValueCode            ++
+    [Invokespecial "java/lang/Integer/<init>" "I" "V"]
+      where
+        identValueCode = translateVariable (lookupVarTableEntry ident varTable)
+translateObjectWrapper (Just Sentence) ident varTable
+  = translateVariable (lookupVarTableEntry ident varTable)
+
 
 translateVariable :: VarTableEntry -> JProgram
 translateVariable (Global ident t)
@@ -581,6 +614,7 @@ translateToJType Letter       = "C"
 translateToJType Sentence     = "Ljava/lang/String;"
 translateToJType Boolean      = "C"
 translateToJType (RefType t)  = "[" ++ translateToJType t
+translateToJType (Ref t)      = "Ljava/util/concurrrent/atomic/AtomicReference;" 
 
 translateToJTypeId :: (Maybe Type) -> String
 translateToJTypeId (Just Number)   = "I"

@@ -11,7 +11,7 @@ data JInstr =
   Getfield Label String    | -- Gets field value from objectref.
   Putfield Label String    | -- Puts a objectref in the field.
   Call Label String String | -- Call method with params and return type.
-  Func Label String String | -- A function.
+  Func Label String String Int | -- A function.
   ALoad Int                | -- Load reference onto stack from local var int..
   ALoad_0                  | -- Load reference onto stack from local var 0.
   ALoad_1                  | -- Load object in local variable 1 onto stack.
@@ -83,7 +83,11 @@ data JInstr =
   Endmethod                | -- Signals the end of a method.
   IReturn                  | -- Return an integer from a function.
   AReturn                  | -- Return a reference from a function.
-  Return                     -- Return void from a method.
+  Return                   | -- Return void from a method.
+  NewAtomicReference       |
+  InvokeAtomicReference    |
+  StackLimit Int           |
+  LocalsLimit Int       
 
 instance Show JInstr where
   show (Class label)
@@ -110,10 +114,10 @@ instance Show JInstr where
     = "invokevirtual " ++
        label ++ "(" ++ params ++ ")" ++
        return ++ "\n"
-  show (Func label params return)
+  show (Func label params return _)
     = ".method public " ++ 
        label ++ "(" ++ params ++ ")" ++ return ++ "\n" ++
-       ".limit stack 100\n.limit locals 100\n"
+       ".limit stack 100\n"
   show (ALoad num)         = "aload " ++ show num ++ "\n"
   show (ALoad_0)           = "aload_0\n"
   show (ALoad_1)           = "aload_1\n"
@@ -181,6 +185,7 @@ instance Show JInstr where
   show (IReturn)           = "ireturn\n"
   show (AReturn)           = "areturn\n" 
   show (Return)            = "return\n"
+  show (LocalsLimit num)   = ".limit locals " ++ show num ++ "\n"
   show (Getstatic lib obj)
     = "getstatic " ++ lib ++ " " ++ obj ++ "\n"
   show (Invokevirtual label param ret)
@@ -195,6 +200,7 @@ instance Show JInstr where
 data Constant =
   ConsI Int   | 
   ConsS String
+  deriving Eq
 
 instance Show Constant where
   show (ConsI i)

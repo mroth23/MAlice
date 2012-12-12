@@ -29,7 +29,8 @@ compile code name = do
       trans      = T.renameIdentifiers optAST
       desugared  = T.desugarAST trans
       byteCode   = J.translateProgram desugared
-  return $ PP.pprint desugared
+  return $ J.showJavaProgram byteCode
+--  return $ PP.pprint desugared
 
 parseCode :: String -> String -> Either String (AST.Program, MP.ParserState)
 parseCode code name =
