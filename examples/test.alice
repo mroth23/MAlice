@@ -1,0 +1,16 @@
+The looking-glass hatta ()
+opened
+        fromHatta was a number of 6.
+        The looking-glass derp1 ()
+        opened
+                fromDerp2 was a number of 7.
+                The looking-glass derp2 (number fromDerp1)
+                opened
+                      fromDerp1 said Alice then
+                      fromDerp2 said Alice then
+                      fromHatta said Alice.
+                closed
+                derp2(5).
+        closed
+        derp1().
+closed
