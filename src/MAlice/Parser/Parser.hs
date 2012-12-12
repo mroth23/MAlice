@@ -119,7 +119,7 @@ varDecl = (try $
        (do { reserved "had"
            ; recordPosition
            ; e <- expr
-           ; t <- vtype
+           ; t <- atype
            ; terminator
            -- Check that array index is an integer expression
            ; checkExpr Number e (show $ VArrayDecl t var e)
@@ -398,7 +398,7 @@ stmt =
   "statement"
 
 -- |Parses a type name.
--- <type> = number | letter | sentence| spider <type>
+-- <type> = number | letter | sentence | spider <type> | dream
 vtype :: MParser Type
 vtype = lexeme $ (
   (reserved "number"   >> return Number)   <|>
@@ -407,6 +407,17 @@ vtype = lexeme $ (
   (reserved "dream"    >> return Boolean)  <|>
   (reserved "spider"   >> vtype >>= return . RefType) <?>
   "valid type name")
+
+-- |Parses an array type type name.
+-- <type> = number | letter | sentence | dream
+atype :: MParser Type
+atype = lexeme $ (
+  (reserved "number"   >> return Number)   <|>
+  (reserved "letter"   >> return Letter)   <|>
+  (reserved "sentence" >> return Sentence) <|>
+  (reserved "dream"    >> return Boolean)  <?>
+  "valid array element type")
+
 
 -- |Builds the expression parser for arithmetic and logic expressions
 expr :: MParser Expr
