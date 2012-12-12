@@ -1,0 +1,402 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 3cm
+\topmargin 3cm
+\rightmargin 3cm
+\bottommargin 3cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Section
+The compiler
+\end_layout
+
+\begin_layout Subsection
+Parser choice
+\end_layout
+
+\begin_layout Standard
+We chose the 
+\emph on
+parsec 
+\emph default
+library to do scanning and parsing in our compiler.
+ Parsec is a monadic parser combinator library for LL grammars with optional,
+ infinite lookahead.
+ In 
+\emph on
+parsec
+\emph default
+, grammar rules are written down in Haskell in a similar form to BNF.
+ They can then be combined with combinators to form more complex parsers,
+ e.g.
+ choice can be made between different rules where the first succeeding rule
+ produces the result, or a parser can be applied many times, generating
+ a list of results.
+ In our eyes, this has several advantages over separately written or generated
+ parser-scanner pairs.
+\begin_inset Newline newline
+\end_inset
+
+Firstly, there is no real need
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Although it is possible to write a separate lexer with parsec
+\end_layout
+
+\end_inset
+
+ to write or generate a scanner, since the library already allows to specify
+ reserved words, operators, comments and other bits that would form lexemes.
+ Challenges with interfacing the scanner and parser are practically eliminated.
+\begin_inset Newline newline
+\end_inset
+
+Secondly, the whole parser/scanner unit is written and embedded in the language
+ of the rest of the compiler (Haskell).
+ This allows subtle fine-tuning of the parsing process, and gives access
+ to the powerful type system and other facilities of Haskell.
+ In particular, 
+\emph on
+parsec 
+\emph default
+is not just monadic, it is also a monad transformer, which allows arbitrary
+ monads to be naturally integrated with it.
+ In theory, this would allow the parser to read for example imported files
+ through the IO monad, or have other side effects.
+ Since our implementation is rather straight-forward, we use the default
+ 
+\emph on
+ParsecT
+\emph default
+ that is strapped to the identity monad.
+ We do however use a custom parser state to perform static checking in the
+ parsing stage.
+ A log of errors and warnings is kept so the parser doesn't have to terminate
+ when a semantic error occurs.
+ There is also a symbol table to keep track of scope, and location storage
+ for better, more precise error output.
+\begin_inset Newline newline
+\end_inset
+
+While there are generally concerns about performance in parser combinator
+ libraries, parsec has been designed to be 
+\begin_inset Quotes eld
+\end_inset
+
+
+\emph on
+industrial strength
+\begin_inset Quotes erd
+\end_inset
+
+
+\emph default
+.
+ We believe that with some careful design of the grammar, ensuring it is
+ as predictive (LL(1)) as possible, there need to be no concerns about this.
+ Our parser only uses look-ahead in very few places, and our tests have
+ shown that it can parse large MAlice files of thousands of lines of code
+ in the blink of an eye
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Parsed, type-checked and optimised a 5.3k line MAlice program, with 10 levels
+ of inner functions.
+ GHC flags -O2, on a lab machine, time measured 0.22s.
+\end_layout
+
+\end_inset
+
+.
+\begin_inset Newline newline
+\end_inset
+
+Some other features of 
+\emph on
+parsec 
+\emph default
+include automatic generation of an LL expression parser through a specification
+ of the precedences, associativities and expression data type in Haskell.
+ It also has customisable parser error output, where messages can be attached
+ to parser rules, which are output when parsing fails.
+ Overall, this made us decide that 
+\emph on
+parsec
+\emph default
+ is a good choice to build a parser in Haskell with.
+ We have also built a working parser with 
+\emph on
+happy
+\emph default
+ and 
+\emph on
+alex, 
+\emph default
+but felt that there isn't enough flexibility for keeping state and type-checking
+ between the lexer and parser with that setup.
+ On top of that, the version of 
+\emph on
+alex (3.0.1) 
+\emph default
+installed on the lab computers has a bug with the 
+\emph on
+%monad
+\emph default
+ wrapper we were using which made it impossible to generate the parser without
+ locally installing an up-to-date version through cabal.
+\end_layout
+
+\begin_layout Subsection
+Semantic analysis
+\end_layout
+
+\begin_layout Standard
+Most of the semantic analysis in our compiler is done at the parsing stage.
+ As the parser parses the program, it keeps a hierarchy of symbol tables
+ for each new scope in its state.
+ As new identifiers are defined, it is checked that they aren't already
+ declared in the same scope.
+ Next, they are added to the current symbol table together with some other
+ information about them: Type, kind (variable, function, procedure), return
+ type, and (if any) argument types.
+ The 
+\emph on
+Maybe
+\emph default
+ data type is used to indicate procedure return type.
+ On function definitions, after the function identifier has been inserted
+ into the symbol table, a new scope is entered, i.e.
+ a symbol table is added to the stack.
+ In addition to type-checking of expressions and identifiers, every time
+ a function is called, the list of arguments and return type are also checked.
+ During parsing, the following errors and warnings can occur: 
+\end_layout
+
+\begin_layout Itemize
+Type error: an identifier or expression of the wrong type is used, e.g.
+ in an assignment
+\end_layout
+
+\begin_layout Itemize
+Multiple declaration error: the same identifier is defined more than once
+ in the same scope
+\end_layout
+
+\begin_layout Itemize
+Unknown identifier error: a reference to an unknown identifier is made
+\end_layout
+
+\begin_layout Itemize
+Invalid identifier kind error: an identifier is used in the wrong context,
+ e.g.
+ a function call on a variable
+\end_layout
+
+\begin_layout Itemize
+Invalid return error: return statement outside of a function definition
+\end_layout
+
+\begin_layout Itemize
+Function return path warning: a function does not return a value on all
+ code paths
+\end_layout
+
+\begin_layout Itemize
+Empty function warning: a function body is empty
+\end_layout
+
+\begin_layout Standard
+There are some additional checks that occur after the parsing is completed.
+ If the source file doesn't have the procedure 'hatta' defined, it has the
+ wrong type signature, or is a function, an error is logged.
+ If the whole parsing process completes without errors, the constructed
+ abstract syntax tree is returned from the parser.
+ Otherwise, a string containing the error message(s) is returned.
+\end_layout
+
+\begin_layout Subsection
+Abstract syntax tree transformation
+\end_layout
+
+\begin_layout Standard
+As a next step, the abstract syntax tree is modified in several passes.
+ First, every nested function and identifier is renamed and given a unique
+ name.
+ The most important step in the transformation pass, lambda lifting, happens
+ next.
+ This is necessary to facilitate code generation for our JVM backend, which
+ doesn't support nested methods.
+ It is done in three stages: first, the abstract syntax tree is annotated
+ with information about free variables.
+ This information is then used to modify every function call to include
+ the free variables in that function as additional arguments (passed by
+ reference), and every function definition is appended with the extra arguments.
+ Last, there is a collection pass that walks the abstract syntax tree and
+ recursively lifts all inner functions out of their original position right
+ in front of their 
+\begin_inset Quotes eld
+\end_inset
+
+parent
+\begin_inset Quotes erd
+\end_inset
+
+ function.
+\begin_inset Newline newline
+\end_inset
+
+The last part is optimisation, which is mostly done at this stage.
+ Expressions are reduced as far as possible, and dead code such as certain
+ control structures and functions that are never entered or called are removed.
+ Statements with no effects, such as 'x = x', are also removed.
+\end_layout
+
+\begin_layout Subsection
+Code generation for the JVM
+\end_layout
+
+\begin_layout Section
+Critical evaluation
+\end_layout
+
+\begin_layout Standard
+Most importantly, our compiler follows the functional specification, with
+ some extensions to the reference implementation.
+ Almost all parts of the compilers are pure
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+There is no use of IO outside of file handling and library dependencies
+ (parsec)
+\end_layout
+
+\end_inset
+
+ Haskell, and unsafe functions such as 
+\emph on
+head
+\emph default
+ and 
+\emph on
+fromJust
+\emph default
+ are avoided as much as possible unless they're certainly safe to use.
+ This makes it extremely unlikely for the compiler to crash (although it
+ might of course malfunction).
+\begin_inset Newline newline
+\end_inset
+
+The optimisation stage is independent from code generation, so other backends
+ would profit from it as well.
+ Moreover, the abstract syntax tree format is annotated with some type informati
+on that is retained from parsing, to accommodate for the typing needs of
+ different output languages.
+\begin_inset Newline newline
+\end_inset
+
+Since the parser is hand-written and modular, it is easy to reuse single
+ bits of it, e.g.
+ to parse expressions on their own.
+ We have done so in the extension, our interactive MAlice shell, and written
+ almost no additional code to parse user input, while generating the exact
+ same data that is already used in the AST.
+\begin_inset Newline newline
+\end_inset
+
+We believe that our compiler is designed in a way that easily allows future
+ development and extensions.
+ It would be trivial to add a different code generator, e.g.
+ LLVM, that profits from the optimisation the compiler already does.
+ The modular parser also allows adding new types or control structures very
+ easily, and we have already added a boolean type to it
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Note that if control structures are added to the AST, all code that traverses
+ the AST has to be amended to handle the new data constructor
+\end_layout
+
+\end_inset
+
+.
+\begin_inset Newline newline
+\end_inset
+
+Overall, development of the compiler went very well, and we wouldn't deviate
+ from our chosen path too much if we had to do it again.
+ One difficulty we had was the rather poor documentation available for generatin
+g Java bytecode.
+ Other assembly languages seem to be much more widely used in compilers
+ (LLVM), or have been used to write programs for decades (Intel assembly),
+ and it would have been easier to get support for these.
+\end_layout
+
+\begin_layout Section
+Beyond the specification
+\end_layout
+
+\end_body
+\end_document

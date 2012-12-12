@@ -1,6 +1,7 @@
 module MAlice.Language.SymbolTable where
 
 import MAlice.Language.Types (Type(..))
+import MAlice.Language.AST (Expr)
 import Control.Monad
 
 type SymbolTable = [SymbolTableEntry]
@@ -11,10 +12,10 @@ type SymbolTable = [SymbolTableEntry]
 -- without arguments.
 data SymbolTableEntry =
   SymbolTableEntry
-  { idString :: String          -- Identifier string (name)
-  , idType :: IdentifierType    -- Identifier type
-  , returnType :: Maybe Type    -- Return type / variable type
-  , argumentTypes :: ArgTypes } -- Argument types (if any)
+  { idString       :: String         -- Identifier string (name)
+  , idType         :: IdentifierType -- Identifier type
+  , returnType     :: Maybe Type     -- Return type / variable type
+  , argumentTypes  :: ArgTypes }     -- Argument types (if any)
   deriving (Eq, Show)
 
 -- |The different kinds of identifiers: Functions, Procedures and Variables
@@ -62,7 +63,7 @@ addSymbol :: String -> Maybe Type -> IdentifierType -> ArgTypes ->
 addSymbol ident vtype idtype argtypes table
   | existsInTable ident table = table
   | otherwise =
-      table ++ [SymbolTableEntry { idString = ident
-                                 , idType = idtype
-                                 , returnType = vtype
-                                 , argumentTypes = argtypes }]
+      table ++ [SymbolTableEntry { idString       = ident
+                                 , idType         = idtype
+                                 , returnType     = vtype
+                                 , argumentTypes  = argtypes }]

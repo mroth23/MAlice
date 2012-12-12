@@ -20,6 +20,7 @@ module MAlice.Parser.ParserState
        , clearPosition )
 where
 
+import MAlice.Language.AST (Expr)
 import MAlice.Language.Types
 import MAlice.Language.SymbolTable
 import MAlice.Language.Utilities
@@ -125,21 +126,21 @@ instance Show SemanticWarning where
 -- |Logs an error to the parser state together with the current position
 logError :: SemanticError -> MParser ()
 logError perr = do
-  st <- getState
+  st  <- getState
   pos <- getCPos
   inp <- getContext
-  let el = errorList st
-  let newEl = el { errors = errors el ++ [(perr, pos, inp)]}
+  let el    = errorList st
+      newEl = el { errors = errors el ++ [(perr, pos, inp)]}
   updateState $ \st -> st { errorList = newEl }
 
 -- |Logs a warning to the parser state together with the current position
 logWarning :: SemanticWarning -> MParser ()
 logWarning perr = do
-  st <- getState
+  st  <- getState
   pos <- getCPos
   inp <- getContext
-  let el = warnList st
-  let newEl = el { warnings = warnings el ++ [(perr, pos, inp)]}
+  let el    = warnList st
+      newEl = el { warnings = warnings el ++ [(perr, pos, inp)]}
   updateState $ \st -> st { warnList = newEl }
 
 -- |Adds a new symbol table for a scope with a given name
