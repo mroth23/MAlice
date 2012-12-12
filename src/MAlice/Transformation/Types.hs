@@ -69,15 +69,15 @@ data AIfClause =
   deriving (Eq, Show)
 
 data AExpr =
-  AEBinOp String AExpr AExpr              FreeVars |
-  AEUnOp String AExpr                     FreeVars |
-  AEId (Maybe Type) Ident                 FreeVars |
-  AEString String                                  |
-  AEInt IntLiteral                                 |
-  AEChar Char                                      |
-  AEArrRef (Maybe Type) Ident AExpr       FreeVars |
-  AEBool Bool                                      |
-  AECall (Maybe Type) Ident AActualParams FreeVars
+  AEBinOp String AExpr AExpr      FreeVars |
+  AEUnOp String AExpr             FreeVars |
+  AEId Type Ident                 FreeVars |
+  AEString String                          |
+  AEInt IntLiteral                         |
+  AEChar Char                              |
+  AEArrRef Type Ident AExpr       FreeVars |
+  AEBool Bool                              |
+  AECall Type Ident AActualParams FreeVars
   deriving (Eq, Show)
 
 data AActualParams =

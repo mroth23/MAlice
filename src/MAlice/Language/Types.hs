@@ -3,16 +3,25 @@ module MAlice.Language.Types where
 {- It's impossible to construct boolean types,
    but they are necessary for type checking -}
 data Type =
-  Number | Letter | Sentence | Boolean | RefType Type | Unknown | Ref Type
+  Number       |
+  Letter       |
+  Sentence     |
+  Boolean      |
+  RefType Type |
+  Void         |
+  Ref Type     |
+  Invalid
   deriving (Eq)
 
 instance Show Type where
-  show Number = "number"
-  show Letter = "letter"
-  show Sentence = "sentence"
-  show Boolean = "Boolean"
+  show Number      = "number"
+  show Letter      = "letter"
+  show Sentence    = "sentence"
+  show Boolean     = "boolean"
+  show Void        = "void"
   show (RefType t) = "spider " ++ show t
-  show (Ref t) = "&" ++ show t
+  show (Ref t)     = "&" ++ show t
+  show (Invalid)   = "invalid type"
 
 -- Returns True if the type supports (==) comparison
 isEq :: Type -> Bool

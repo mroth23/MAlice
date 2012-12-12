@@ -96,12 +96,12 @@ varDecl = (try $
            ; t <- vtype
              --Case 1: Variable declaration
            ; (do { terminator
-                 ; insertSymbol var (Just t) IdVariable []
+                 ; insertSymbol var t IdVariable []
                  ; clearPosition
                  ; return $ VarDecl t var }) <|>
              (do { reserved "too"
                  ; terminator
-                 ; insertSymbol var (Just t) IdVariable []
+                 ; insertSymbol var t IdVariable []
                  ; clearPosition
                  ; return $ VarDecl t var }) <|>
              --Case 2: Variable declaration with assignment
@@ -111,7 +111,7 @@ varDecl = (try $
                  ; terminator
                  ; checkExpr t e (show $ VAssignDecl t var e)
                  ; clearPosition
-                 ; insertSymbol var (Just t) IdVariable []
+                 ; insertSymbol var t IdVariable []
                  ; clearPosition
                  ; return $ VAssignDecl t var e })
            }) <|>
@@ -124,7 +124,7 @@ varDecl = (try $
            -- Check that array index is an integer expression
            ; checkExpr Number e (show $ VArrayDecl t var e)
            ; clearPosition; clearPosition
-           ; insertSymbol var (Just . RefType $ t) IdVariable []
+           ; insertSymbol var (RefType $ t) IdVariable []
            ; return $ VArrayDecl t var e })
      }) <?> "variable declaration"
 
@@ -145,7 +145,7 @@ methodDecl =
             ; t <- vtype
             -- Set up the state for parsing of the body,
             -- in particular checking the return type
-            ; enterMethod f (Just t) IdFunction args
+            ; enterMethod f t IdFunction args
             ; b <- body
             ; exitMethod
             ; checkReturnPath b f
@@ -153,7 +153,7 @@ methodDecl =
         (do { reserved "looking-glass"
             ; f <- identifier
             ; args <- formalParams
-            ; enterMethod f Nothing IdProcedure args
+            ; enterMethod f Void IdProcedure args
             -- Same as in function declaration, except we don't
             -- have a return type
             ; b <- body
@@ -453,18 +453,18 @@ exprTerm = try . lexeme $
   do { var <- identifier
      ; (do { reserved "'s"
            ; ix <- expr
-           ; let arrRefExpr = EArrRef (Just Unknown) var ix
+           ; let arrRefExpr = EArrRef Void var ix
            ; checkExpr Number ix (show arrRefExpr)
            ; t <- getArrayType var arrRefExpr
            ; reserved "piece"
            ; return $ EArrRef t var ix })              <|>
        (do { args <- actualParams
-           ; let callExpr = ECall (Just Unknown) var args
+           ; let callExpr = ECall Void var args
            ; t <- getIdType var IdFunction callExpr
            ; return $ ECall t var args })              <|>
        (do { notFollowedBy $
              reserved "'s" <|> (actualParams >> return ())
-           ; let varExpr = EId (Just Unknown) var
+           ; let varExpr = EId Void var
            ; t <- getIdType var IdVariable varExpr
            ; return $ EId t var }) }                   <|>
   do { str <- stringLit; return $ EString str }         <|>

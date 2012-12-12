@@ -70,13 +70,13 @@ data IfClause =
 data Expr =
   EBinOp String Expr Expr         |
   EUnOp String Expr               |
-  EId (Maybe Type) Ident          |
+  EId Type Ident                  |
   EString String                  |
   EInt IntLiteral                 |
   EChar Char                      |
-  EArrRef (Maybe Type) Ident Expr |
+  EArrRef Type Ident Expr         |
   EBool Bool                      |
-  ECall (Maybe Type) Ident ActualParams
+  ECall Type Ident ActualParams
   deriving (Eq)
 
 instance Show Expr where

@@ -31,13 +31,13 @@ testAssignOp t1 t2 =
 -- number and types of arguments.
 checkFuncCall :: String -> ActualParams -> MParser ()
 checkFuncCall f as =
-  checkCall IdFunction f as $ show (ECall (Just Unknown) f as)
+  checkCall IdFunction f as $ show (ECall Void f as)
 
 -- |Checks that a procedure call is to a procedure identifier and has the right
 -- number and types of arguments.
 checkProcCall :: String -> ActualParams -> MParser ()
 checkProcCall f as =
-  checkCall IdProcedure f as $ show (ECall (Just Unknown) f as)
+  checkCall IdProcedure f as $ show (ECall Void f as)
 
 -- |Helper function to type-check method calls.
 checkCall :: IdentifierType -> String -> ActualParams -> String -> MParser ()
@@ -51,7 +51,7 @@ checkCall idtype f args context = do
 checkArgs :: ActualParams -> SymbolTableEntry -> MParser ()
 checkArgs aps f = do
   ps <- inferAParamTypes aps
-  let ts = map Just $ argumentTypes f
+  let ts = argumentTypes f
   if ts == ps
     then return ()
     else logError . CallTypeError $
@@ -91,36 +91,37 @@ checkAssignment e1 e2 = do
   logError . TypeError $
     "Values can only be assigned to variables and array elements"
 
-checkAssignment' :: Maybe Type -> Expr -> Expr -> MParser ()
+checkAssignment' :: Type -> Expr -> Expr -> MParser ()
 checkAssignment' t1 e1 e2 = do
   t2 <- inferType e2
   setContext $ (show e1) ++ " became " ++ (show e2)
-  maybeCheck2 (return ()) t1 t2 $ \t1' t2' ->
-    case testAssignOp t1' t2' of
-      Right _  -> return ()
-      Left err -> logError . TypeError $ err
+  case (t1, t2) of
+    (Invalid, _) -> return ()
+    (_, Invalid) -> return ()
+    (t1', t2')   ->
+      case testAssignOp t1' t2' of
+        Right _  -> return ()
+        Left err -> logError . TypeError $ err
 
 -- |Checks whether the given expression can be read into.
 checkInput :: Expr -> MParser ()
 checkInput e@(EId v var) = do
   setContext $ "what was " ++ (show e) ++ "?"
-  maybeCheck (return ()) v $ \v' ->
-    case v' of
-      (RefType _) -> logError . TypeError $ "Can't read in to reference type"
-      _           -> return ()
+  case v of
+    (RefType _) -> logError . TypeError $ "Can't read in to reference type"
+    _           -> return ()
 
 checkInput e@(EArrRef atype arr _) = do
-  maybeCheck (return ()) atype $ \atype' ->
-    case atype' of
-      (RefType _) -> logError . TypeError $ "Can't read in to reference type"
-      _           -> return ()
+  case atype of
+    (RefType _) -> logError . TypeError $ "Can't read in to reference type"
+    _           -> return ()
 
 checkInput _ =
   logError . TypeError $ "Can only read in to variables or array elements"
 
 -- |Returns a list of the types of actual parameters
 -- (i.e. a list of expressions)
-inferAParamTypes :: ActualParams -> MParser [Maybe Type]
+inferAParamTypes :: ActualParams -> MParser [Type]
 inferAParamTypes (APList aps) =
   mapM inferType aps
 

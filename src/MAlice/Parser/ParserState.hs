@@ -179,9 +179,9 @@ checkLocalIdentifier ident = do
     _          -> return ()
 
 -- |Inserts a symbol into the symbol table
-insertSymbol :: String -> Maybe Type -> IdentifierType -> ArgTypes -> MParser ()
+insertSymbol :: String -> Type -> IdentifierType -> ArgTypes -> MParser ()
 insertSymbol ident vartype idtype argtypes = do
-  setContext $ "Declaration of '"++ident ++ "' with type "++ (showMaybe vartype)
+  setContext $ "Declaration of '"++ident ++ "' with type "++ (show vartype)
   checkLocalIdentifier ident
   (t:ts) <- getSymbolTables
   let newt = addSymbol ident vartype idtype argtypes t

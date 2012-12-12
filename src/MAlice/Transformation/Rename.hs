@@ -65,7 +65,7 @@ renameDecl (FuncDecl f ps t body) = do
 -- A procedure declaration
 renameDecl (ProcDecl f ps body) = do
   fname <- methodLabel f
-  insertSymbol f fname MAlice.Unknown
+  insertSymbol f fname MAlice.Void
   rps <- renameFPs fname ps
   rbody <- renameBody body
   return $ ProcDecl fname rps rbody

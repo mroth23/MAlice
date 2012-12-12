@@ -24,7 +24,7 @@ getFunction k =
 
 makeAPList :: FreeVars -> [Expr]
 makeAPList fs =
-  map (\(i, t) -> EId (Just . makeRefType $ t) i) fs
+  map (\(i, t) -> EId (makeRefType t) i) fs
 
 makeFPList :: FreeVars -> [FormalParam]
 makeFPList fs =
