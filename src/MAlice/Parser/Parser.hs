@@ -1,8 +1,9 @@
 module MAlice.Parser.Parser
        ( mparse
+       , compoundStmt
+       , expr
        ) where
 
-import Control.Monad
 import Text.Parsec hiding (spaces)
 import Text.Parsec.Expr
 import Text.Parsec.Language
@@ -24,7 +25,7 @@ mparse code name = do
     Right (ast, st) ->
       case errors . errorList $ st of
         [] -> Right (ast, st)
-        el -> Left . show $ errorList st
+        _  -> Left . show $ errorList st
 
 -- |Some basic definitions for the MAlice language
 maliceDef =
