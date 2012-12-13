@@ -18,7 +18,7 @@ translateProgram (Program (DeclList decls))
       mergeConstructors(
         [MainMethod]      ++
         [Constructor []]  ++
-        decls'''
+        decls'''''
       )
     )
     )
@@ -28,6 +28,8 @@ translateProgram (Program (DeclList decls))
         junkLabels = getJunkLabels decls'
         decls''    = removeJunkLabels decls' junkLabels
         decls'''   = setupInputIfRequired decls''
+	decls''''  = setupMissingReturns decls'''
+	decls''''' = setupThrowableIfRequired decls''''
 
 translateGlobalDecls :: [Decl] -> VarTable -> MethTable -> LabelTable -> (JProgram, VarTable, MethTable, LabelTable)
 translateGlobalDecls [] varTable methTable labelTable
@@ -225,59 +227,60 @@ translateStmt SNull varTable methTable labelTable
   = ([], varTable, methTable, labelTable)
 translateStmt (SAssign (EId t id) ex) varTable methTable labelTable
   = (exprInstrs ++
-     translateVarAssign id varTable,
+     translateVarAssign id varTable exprType,
      varTable, methTable, labelTable')
        where
          (exprInstrs, labelTable') = translateExpr ex varTable methTable labelTable
--- NOT COMPLETED YET --
+	 exprType                  = inferTypeP ex
 translateStmt (SAssign (EArrRef t id ex1) ex2) varTable methTable labelTable
-  = (translateVariable (lookupVarTableEntry id varTable) ++
-     indexInstrs                                         ++
-     exprInstrs                                          ++
-     translateVarAssign id varTable,
+  = (translateVariable (lookupVarTableEntry id varTable) t  ++
+     indexInstrs                                            ++
+     exprInstrs                                             ++
+     translateVarAssign id varTable exprType,
      varTable, methTable, labelTable'')
        where
          (indexInstrs, labelTable') = translateExpr ex1 varTable methTable labelTable
          (exprInstrs, labelTable'') = translateExpr ex2 varTable methTable labelTable'
+	 exprType                   = inferTypeP ex2
 translateStmt (SInc (EId t id)) varTable methTable labelTable
-  = (translateVariable (lookupVarTableEntry id varTable) ++
-     [IConst_1]                                          ++
-     [IAdd]                                              ++
-     translateVarAssign id varTable,
+  = (translateVariable (lookupVarTableEntry id varTable) t ++
+     [IConst_1]                                            ++
+     [IAdd]                                                ++
+     translateVarAssign id varTable Number,
      varTable, methTable, labelTable)
 translateStmt (SInc (EArrRef t ident expr)) varTable methTable labelTable
-  = (translateVariable (lookupVarTableEntry ident varTable) ++
-     [Dup]                                                  ++
-     exprInstrs                                             ++
-     [Dup]                                                  ++
-     [IStore tempLoc]                                       ++
-     [Swap]                                                 ++
-     [ILoad tempLoc]                                        ++
-     [IALoad]                                               ++
-     [IConst_1]                                             ++
-     [IAdd]                                                 ++
+  = (translateVariable (lookupVarTableEntry ident varTable) t ++
+     [Dup]                                                    ++
+     exprInstrs                                               ++
+     [Dup]                                                    ++
+     [IStore tempLoc]                                         ++
+     [Swap]                                                   ++
+     [ILoad tempLoc]                                          ++
+     [IALoad]                                                 ++
+     [IConst_1]                                               ++
+     [IAdd]                                                   ++
      [IAStore],
      varTable, methTable, labelTable')
       where
         tempLoc                   = getNewLocalVar varTable 2
         (exprInstrs, labelTable') = translateExpr expr varTable methTable labelTable
 translateStmt (SDec (EId t ident)) varTable methTable labelTable
-  = (translateVariable (lookupVarTableEntry ident varTable) ++
-     [IConst_m1]                                         ++
-     [IAdd]                                              ++
-     translateVarAssign ident varTable,
+  = (translateVariable (lookupVarTableEntry ident varTable) t ++
+     [IConst_m1]                                              ++
+     [IAdd]                                                   ++
+     translateVarAssign ident varTable Number,
      varTable, methTable, labelTable)
 translateStmt (SDec (EArrRef t ident expr)) varTable methTable labelTable
-  = (translateVariable (lookupVarTableEntry ident varTable) ++
-     [Dup]                                                  ++
-     exprInstrs                                             ++
-     [Dup]                                                  ++
-     [IStore tempLoc]                                       ++
-     [Swap]                                                 ++
-     [ILoad tempLoc]                                        ++
-     [IALoad]                                               ++
-     [IConst_m1]                                            ++
-     [IAdd]                                                 ++
+  = (translateVariable (lookupVarTableEntry ident varTable) t ++
+     [Dup]                                                    ++
+     exprInstrs                                               ++
+     [Dup]                                                    ++
+     [IStore tempLoc]                                         ++
+     [Swap]                                                   ++
+     [ILoad tempLoc]                                          ++
+     [IALoad]                                                 ++
+     [IConst_m1]                                              ++
+     [IAdd]                                                   ++
      [IAStore],
      varTable, methTable, labelTable')
       where
@@ -306,24 +309,41 @@ translateStmt (SInput (EId t ident)) varTable methTable labelTable
     [Getfield (thisClass++"/_scanner") "Ljava/util/Scanner;"] ++
     [Invokevirtual ("java/util/Scanner/"++scanMeth) "" t']    ++
     charHandling                                              ++
-    translateVarAssign ident varTable,
+    translateVarAssign ident varTable t,
     varTable, methTable, labelTable)
       where
         t'           = translateToJTypeId t
         scanMeth     = getScanMeth t
         charHandling = inputCharHandling t
+translateStmt (SInput (EArrRef t id expr)) varTable methTable labelTable
+  = (translateVariable (lookupVarTableEntry id varTable) t    ++
+    indexInstrs                                               ++
+    [ALoad_0]                                                 ++
+    [Getfield (thisClass++"/_scanner") "Ljava/util/Scanner;"] ++
+    [Invokevirtual ("java/util/Scanner/"++scanMeth) "" t']    ++
+    charHandling                                              ++
+    translateVarAssign id varTable t,
+    varTable, methTable, labelTable')
+      where
+        (indexInstrs, labelTable') = translateExpr expr varTable methTable labelTable
+	t'                         = translateToJTypeId t
+	scanMeth                   = getScanMeth t
+	charHandling               = inputCharHandling t
 translateStmt (SCall ident (APList exprs)) varTable methTable labelTable
   = ([ALoad_0]    ++
     paramsInstrs  ++
-    [Invokevirtual callString paramString returnType],
+    [Invokevirtual callString paramString returnType] ++
+    restoreRefs,
     varTable, methTable, labelTable')
       where
         (Entry ident' paramString returnType)
           = lookupMethTableEntry ident methTable
         callString
           = thisClass++"/"++ident'
-        (paramsInstrs, labelTable')
+        (paramsInstrs, labelTable', refTable)
           = translateParams exprs varTable methTable labelTable
+	restoreRefs
+	  = translateRestoreRefs varTable refTable
 translateStmt (SLoop expr (CSList stmts)) varTable methTable labelTable
   = ([LLabel label] ++
     exprInstrs      ++
@@ -345,6 +365,7 @@ translateStmt (SIf clauses) varTable methTable labelTable
           = generateNewLabel labelTable
         (instrs, varTable', methTable', labelTable'')
           = translateClauses clauses varTable methTable labelTable' endLabel
+translateStmt a b c d= error $ show a
 
 translateReturnInstr :: Expr -> JInstr
 translateReturnInstr ex
@@ -387,23 +408,49 @@ translateClause (If expr (CSList stmts)) varTable methTable labelTable endLabel
 translateClause (Else (CSList stmts)) varTable methTable labelTable endLabel
   = translateStmts stmts varTable methTable labelTable
 
-translateVarAssign :: String -> VarTable -> JProgram
-translateVarAssign ident varTable
-  = translateEntryAssign (lookupVarTableEntry ident varTable) varTable
-translateEntryAssign :: VarTableEntry -> VarTable -> JProgram
-translateEntryAssign (Global ident t) varTable
+-- ********************************************************************** --
+-- Add type to function for the expression for references.
+translateVarAssign :: String -> VarTable -> Type -> JProgram
+translateVarAssign ident varTable t
+  = translateEntryAssign (lookupVarTableEntry ident varTable) varTable t
+translateEntryAssign :: VarTableEntry -> VarTable -> Type -> JProgram
+translateEntryAssign (Global ident t) varTable t'
   | t == "I"                  = standardGlobal (Global ident t)
   | t == "C"                  = standardGlobal (Global ident t)
   | t == "Ljava/lang/String;" = standardGlobal (Global ident t)
   | otherwise                 = arrayAccess (Global ident t) varTable
-translateEntryAssign (Local ident loc "I") varTable
+translateEntryAssign (Local ident loc "I") varTable t'
   = [(IStore loc)]
-translateEntryAssign (Local ident loc "Ljava/lang/String;") varTable
+translateEntryAssign (Local ident loc "Ljava/lang/String;") varTable t'
   = [(AStore loc)]
-translateEntryAssign (Local ident loc "C") varTable
+translateEntryAssign (Local ident loc "C") varTable t'
   = [(IStore loc)]
-translateEntryAssign (Local ident loc arr) varTable
+translateEntryAssign (Local ident loc "Ljava/util/concurrent/atomic/AtomicReference;") varTable t'
+  = translateLocalRefEntry (Local ident loc "") varTable t'
+translateEntryAssign (Local ident loc arr) varTable t'
   = translateEntryAssignArr loc arr
+
+translateLocalRefEntry :: VarTableEntry -> VarTable -> Type -> JProgram
+translateLocalRefEntry (Local ident loc t) varTable Number
+  = [IStore num] ++
+    [ALoad loc] ++
+    [New "java/lang/Integer"] ++
+    [Dup] ++
+    [ILoad num] ++
+    [Invokespecial "java/lang/Integer/<init>" "I" "V"] ++
+    [Invokevirtual "java/util/concurrent/atomic/AtomicReference.set" "Ljava/lang/Object;" "V"]
+      where
+        num = getNewLocalVar varTable 1
+translateLocalRefEntry (Local ident loc t) varTable Letter
+  = [IStore num] ++
+    [ALoad loc] ++
+    [New "java/lang/Integer"] ++
+    [Dup] ++
+    [ILoad num] ++
+    [Invokespecial "java/lang/Integer/<init>" "I" "V"] ++
+    [Invokevirtual "java/util/concurrent/atomic/AtomicReference.set" "Ljava/lang/Object;" "V"]
+      where
+        num = getNewLocalVar varTable 1
 
 standardGlobal :: VarTableEntry -> JProgram
 standardGlobal (Global ident t)
@@ -412,12 +459,12 @@ standardGlobal (Global ident t)
     [(Putfield (thisClass++"/"++ident) t)]
 arrayAccess :: VarTableEntry -> VarTable -> JProgram
 arrayAccess (Global ident t) varTable
-  = [ALoad_0]                            ++
+  = {- [ALoad_0]                            ++
     [Getfield (thisClass++"/"++ident) t] ++
     [Swap]                               ++
     [IStore loc]                         ++
     [Swap]                               ++
-    [ILoad loc]                          ++
+    [ILoad loc]                          ++ -}
     arrayInstr
       where
         loc        = getNewLocalVar varTable 1
@@ -453,8 +500,19 @@ translateExpr (EUnOp op ex) varTable methTable labelTable
       where
         (exInstrs, labelTable')  = translateExpr ex varTable methTable labelTable
         (unInstrs, labelTable'') = translateUnOp op labelTable'
-translateExpr (EId _ ident) varTable methTable labelTable
-  = (translateVariable (lookupVarTableEntry ident varTable), labelTable)
+translateExpr (EId (Ref Number) ident) varTable methTable labelTable
+  = ((translateVariable (lookupVarTableEntry ident varTable) Number)                          ++
+    [Invokevirtual "java/util/concurrent/atomic/AtomicReference.get" "" "Ljava/lang/Object;"] ++
+    [Checkcast "java/lang/Integer"]                                                           ++
+    [Invokevirtual "java/lang/Integer.intValue" """I"], labelTable)
+translateExpr (EId (Ref Letter) ident) varTable methTable labelTable
+  = ((translateVariable (lookupVarTableEntry ident varTable) Letter)                          ++
+    [Invokevirtual "java/util/concurrent/atomic/AtomicReference.get" "" "Ljava/lang/Object;"] ++
+    [Checkcast "java/lang/Integer"]                                                           ++
+    [Invokevirtual "java/lang/Integer.intValue" """I"], labelTable)
+
+translateExpr (EId t ident) varTable methTable labelTable
+  = (translateVariable (lookupVarTableEntry ident varTable) t, labelTable)
 translateExpr (EString str) varTable methTable labelTable
   = ([(Ldc (ConsS str))], labelTable)
 translateExpr (EInt int) varTable methTable labelTable
@@ -462,8 +520,8 @@ translateExpr (EInt int) varTable methTable labelTable
 translateExpr (EChar char) varTable methTable labelTable
   = ([BIPush (ord char)], labelTable)
 translateExpr (EArrRef t ident expr) varTable methTable labelTable
-  = (translateVariable entry  ++
-    exInstrs                  ++
+  = (translateVariable entry t  ++
+    exInstrs                    ++
     [IALoad],
     labelTable')
       where
@@ -475,64 +533,130 @@ translateExpr (EBool b) varTable methTable labelTable
 translateExpr (ECall t ident (APList exprs)) varTable methTable labelTable
   = ([ALoad_0]  ++
     paramsInstrs ++
-    [Invokevirtual callString paramString returnType],
+    [Invokevirtual callString paramString returnType] ++
+    restoreRefs,
     labelTable')
       where
-        (paramsInstrs, labelTable')           = translateParams exprs varTable methTable labelTable
+        (paramsInstrs, labelTable', refTable) = translateParams exprs varTable methTable labelTable
         (Entry ident' paramString returnType) = lookupMethTableEntry ident methTable
-        callString                            = thisClass++"/"++ident'
+        callString                            = thisClass++"/"++ident
+	restoreRefs                           = translateRestoreRefs varTable refTable
 
-translateParams :: [Expr] -> VarTable -> MethTable -> LabelTable -> (JProgram, LabelTable)
+translateRestoreRefs :: VarTable -> [(String, Int)] -> JProgram
+translateRestoreRefs varTable []
+  = []
+translateRestoreRefs varTable (pair:pairs)
+  = translateRestoreRef varTable pair ++
+    translateRestoreRefs varTable pairs
+
+translateRestoreRef :: VarTable -> (String, Int) -> JProgram
+translateRestoreRef varTable (ident, num)
+  = [ALoad num] ++
+    [Invokevirtual "java/util/concurrent/atomic/AtomicReference.get" "" "Ljava/lang/Object;"] ++
+    translateRestoreRefType (lookupVarTableEntry ident varTable)
+
+translateRestoreRefType :: VarTableEntry -> JProgram
+translateRestoreRefType (Global ident "I")
+  = [Checkcast "java/lang/Integer"]                     ++
+    [Invokevirtual "java/lang/Integer.intValue" "" "I"] ++
+    [ALoad_0]                                           ++
+    [Swap]                                              ++
+    [Putfield field "I"]
+      where
+        field = thisClass++"/"++ident
+translateRestoreRefType (Global ident "C")
+  = [Checkcast "java/lang/Integer"]                     ++
+    [Invokevirtual "java/lang/Integer.intValue" "" "I"] ++
+    [ALoad_0]                                           ++
+    [Swap]                                              ++
+    [Putfield field "I"]
+      where
+        field = thisClass++"/"++ident
+translateRestoreRefType (Global ident "Ljava/lang/String;")
+  = [Checkcast "java/lang/String"] ++
+    [ALoad_0]                      ++
+    [Swap]                         ++
+    [Putfield field t]
+      where
+        field = thisClass++"/"++ident
+	t     = translateToJType Sentence
+translateRestoreRefType (Local ident num "I")
+  = [Checkcast "java/lang/Integer"]                     ++
+    [Invokevirtual "java/lang/Integer.intValue" "" "I"] ++
+    [IStore num]
+translateRestoreRefType (Local ident num "C")
+  = [Checkcast "java/lang/Integer"]                     ++
+    [Invokevirtual "java/lang/Integer.intValue" "" "I"] ++
+    [IStore num]
+translateRestoreRefType (Local ident num "Ljava/lang/String;")
+  = [Checkcast "java/lang/String"] ++
+    [AStore num]
+
+translateParams :: [Expr] -> VarTable -> MethTable -> LabelTable
+                          -> (JProgram, LabelTable, [(String, Int)])
 translateParams [] varTable methTable labelTable
-  = ([], labelTable)
-translateParams ((EId (Ref Number) ident):rest) varTable methTable labelTable
+  = ([], labelTable, [])
+translateParams ((EId (Ref t) ident):rest) varTable methTable labelTable
   = ([NewAtomicReference]   ++
+    [Dup]                   ++
     [Dup]                   ++
     makeNewVarObject        ++
     [InvokeAtomicReference] ++
+    [AStore num]            ++
     params,
-    labelTable')
+    labelTable', (ident, num):refTable)
     where
-      (params, labelTable') = translateParams rest varTable methTable labelTable
-      makeNewVarObject      = translateObjectWrapper (Just Number) ident varTable
+      (params, labelTable', refTable) = translateParams rest ((Local "." num "."):varTable) methTable labelTable
+      makeNewVarObject                = translateObjectWrapper t ident varTable
+      num                             = getNewLocalVar varTable 1
 
 translateParams (expr:rest) varTable methTable labelTable
-  = (exprInstrs ++ params, labelTable'')
+  = (exprInstrs ++ params, labelTable'', refTable)
       where
-        (params, labelTable')      = translateParams rest varTable methTable labelTable
-        (exprInstrs, labelTable'') = translateExpr expr varTable methTable labelTable'
+        (params, labelTable', refTable) = translateParams rest varTable methTable labelTable
+        (exprInstrs, labelTable'')      = translateExpr expr varTable methTable labelTable'
 
-translateObjectWrapper :: (Maybe Type) -> String -> VarTable -> JProgram
-translateObjectWrapper (Just Number) ident varTable
+translateObjectWrapper :: Type -> String -> VarTable -> JProgram
+translateObjectWrapper Number ident varTable
   = [New "java/lang/Integer"] ++
     [Dup]                     ++
     identValueCode            ++
     [Invokespecial "java/lang/Integer/<init>" "I" "V"]
       where
-        identValueCode = translateVariable (lookupVarTableEntry ident varTable)
-translateObjectWrapper (Just Letter) ident varTable
+        identValueCode = translateVariable (lookupVarTableEntry ident varTable) Number
+translateObjectWrapper Letter ident varTable
   = [New "java/lang/Integer"] ++
     [Dup]                     ++
     identValueCode            ++
     [Invokespecial "java/lang/Integer/<init>" "I" "V"]
       where
-        identValueCode = translateVariable (lookupVarTableEntry ident varTable)
-translateObjectWrapper (Just Sentence) ident varTable
-  = translateVariable (lookupVarTableEntry ident varTable)
+        identValueCode = translateVariable (lookupVarTableEntry ident varTable) Number
+translateObjectWrapper Sentence ident varTable
+  = translateVariable (lookupVarTableEntry ident varTable) Sentence
 
 
-translateVariable :: VarTableEntry -> JProgram
-translateVariable (Global ident t)
+translateVariable :: VarTableEntry -> Type -> JProgram
+translateVariable (Global ident t) t'
   = [ALoad_0] ++
     [Getfield (thisClass++"/"++ident) t]
-translateVariable (Local ident num "I")
+translateVariable (Local ident num "I") t
   = [ILoad num]
-translateVariable (Local ident num "C")
+translateVariable (Local ident num "C") t
   = [ILoad num]
-translateVariable (Local ident num "Ljava/lang/String;")
+translateVariable (Local ident num "Ljava/lang/String;") t
   = [ALoad num]
+translateVariable (Local ident num "Ljava/util/concurrent/atomic/AtomicReference;") t
+  |t == Number || t == Letter
+     = [ALoad num]                                                                               ++
+       [Invokevirtual "java/util/concurrent/atomic/AtomicReference.get" "" "Ljava/lang/Object;"] ++
+       [Checkcast "java/lang/Integer"]                                                           ++
+       [Invokevirtual "java/lang/Integer.intValue" """I"]
+  | t == Sentence
+      = [ALoad num]                                                                               ++
+        [Invokevirtual "java/util/concurrent/atomic/AtomicReference.get" "" "Ljava/lang/Object;"] ++
+        [Checkcast "java/lang/String"] 
 -- If not a primitive type load the reference onto the stack.
-translateVariable (Local ident num t)
+translateVariable (Local ident num t) t'
   = [ALoad num]
 
 translateBinOp :: String -> LabelTable -> (JProgram, LabelTable)
@@ -553,7 +677,7 @@ translateBinOp "==" labelTable
       where
         (booleanCode, label, labelTable') = setBooleanCode labelTable
 translateBinOp "!=" labelTable
-  = ([If_icmpeq label] ++
+  = ([If_icmpne label] ++
     booleanCode,
     labelTable')
       where
@@ -607,6 +731,7 @@ translateForParamString Number      = "I"
 translateForParamString Letter      = "I"
 translateForParamString Sentence    = "L/java/lang/String;"
 translateForParamString (RefType t) = "[" ++ translateForParamString t
+translateForParamString (Ref t)     = "Ljava/util/concurrent/atomic/AtomicReference;"
 
 translateToJType :: Type -> String
 translateToJType Number       = "I"
@@ -614,7 +739,7 @@ translateToJType Letter       = "C"
 translateToJType Sentence     = "Ljava/lang/String;"
 translateToJType Boolean      = "C"
 translateToJType (RefType t)  = "[" ++ translateToJType t
-translateToJType (Ref t)      = "Ljava/util/concurrrent/atomic/AtomicReference;" 
+translateToJType (Ref t)      = "Ljava/util/concurrent/atomic/AtomicReference;" 
 translateToJTypeId :: Type -> String
 translateToJTypeId Number   = "I"
 translateToJTypeId Letter   = "C"
@@ -782,6 +907,81 @@ removeJunkLabels ((Goto label):rest) labelTable
   | otherwise             = (Goto label):(removeJunkLabels rest labelTable)
 removeJunkLabels (somethingElse:rest) labelTable
   = (somethingElse):(removeJunkLabels rest labelTable)
+
+-- JVM won't let you get to end of function with correct return.
+setupMissingReturns :: JProgram -> JProgram
+setupMissingReturns []
+  = []
+setupMissingReturns ((Func label params return num):rest)
+  = [Func label params return num]   ++
+    setupMissingReturn (body) return ++
+    setupMissingReturns rest'
+      where
+        (body, rest') = splitFunctionFromProgram rest
+setupMissingReturns (instr:rest)
+  = (instr):(setupMissingReturns rest)
+
+setupMissingReturn :: JProgram -> String -> JProgram
+setupMissingReturn [] _
+  = []
+setupMissingReturn (instr:[Endmethod]) str
+  | str == "I" && instr /= (IReturn)
+      = [instr]                     ++
+        [ALoad_0]                   ++
+        [Invokevirtual call "" "V"] ++
+	[IConst_m1]                 ++
+	[IReturn]                   ++
+	[Endmethod]
+  | str == "C" && instr /= (IReturn)
+      = [instr]                     ++
+        [ALoad_0]                   ++
+        [Invokevirtual call "" "V"] ++
+	[IConst_m1]                 ++
+	[IReturn]                   ++
+	[Endmethod]
+  | str == "V" && instr /= (Return)
+      = [instr]  ++
+        [Return] ++
+	[Endmethod]
+  | str /= "V" && str /= "I" && str /= "C" && instr /= (AReturn)
+      = [instr]                     ++
+        [ALoad_0]                   ++
+	[Invokevirtual call "" "V"] ++
+	[AConst_null]               ++
+	[AReturn]                   ++
+	[Endmethod]
+  | otherwise = instr:[Endmethod]
+        where
+	  call = (thisClass++"/"++"_throwConditionError")
+setupMissingReturn [Endmethod] _
+  = [Endmethod]
+setupMissingReturn (instr:rest) str
+  = (instr):(setupMissingReturn rest str)
+
+splitFunctionFromProgram :: JProgram -> (JProgram, JProgram)
+splitFunctionFromProgram []
+  = ([], [])
+splitFunctionFromProgram ((Endmethod):rest)
+  = ([Endmethod], rest)
+splitFunctionFromProgram (instr:rest)
+  = (instr:body, rest')
+      where
+        (body, rest') = splitFunctionFromProgram rest
+
+setupThrowableIfRequired :: JProgram -> JProgram
+setupThrowableIfRequired program
+  | usesThrowable program  = program++[ThrowConditionError]
+  | otherwise              = program
+
+usesThrowable :: JProgram -> Bool
+usesThrowable []
+  = False
+usesThrowable ((Invokevirtual call "" "V"):_)
+  = True
+    where
+      call = (thisClass++"/"++"_throwConditionError")
+usesThrowable (_:rest)
+  = usesThrowable rest
 
 usesInput :: JProgram -> Bool
 usesInput []
