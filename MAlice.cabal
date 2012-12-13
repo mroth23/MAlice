@@ -28,7 +28,7 @@ executable compile
   Default-language:
     Haskell2010
 
-  GHC-options
+  GHC-options:
     -Wall -O2
 
   Hs-source-dirs:

@@ -1,8 +1,9 @@
 module MAlice.Parser.Parser
        ( mparse
+       , compoundStmt
+       , expr
        ) where
 
-import Control.Monad
 import Text.Parsec hiding (spaces)
 import Text.Parsec.Expr
 import Text.Parsec.Language
@@ -24,7 +25,7 @@ mparse code name = do
     Right (ast, st) ->
       case errors . errorList $ st of
         [] -> Right (ast, st)
-        el -> Left . show $ errorList st
+        _  -> Left . show $ errorList st
 
 -- |Some basic definitions for the MAlice language
 maliceDef =
@@ -119,7 +120,7 @@ varDecl = (try $
        (do { reserved "had"
            ; recordPosition
            ; e <- expr
-           ; t <- vtype
+           ; t <- atype
            ; terminator
            -- Check that array index is an integer expression
            ; checkExpr Number e (show $ VArrayDecl t var e)
@@ -398,7 +399,7 @@ stmt =
   "statement"
 
 -- |Parses a type name.
--- <type> = number | letter | sentence| spider <type>
+-- <type> = number | letter | sentence | spider <type> | dream
 vtype :: MParser Type
 vtype = lexeme $ (
   (reserved "number"   >> return Number)   <|>
@@ -407,6 +408,17 @@ vtype = lexeme $ (
   (reserved "dream"    >> return Boolean)  <|>
   (reserved "spider"   >> vtype >>= return . RefType) <?>
   "valid type name")
+
+-- |Parses an array type type name.
+-- <type> = number | letter | sentence | dream
+atype :: MParser Type
+atype = lexeme $ (
+  (reserved "number"   >> return Number)   <|>
+  (reserved "letter"   >> return Letter)   <|>
+  (reserved "sentence" >> return Sentence) <|>
+  (reserved "dream"    >> return Boolean)  <?>
+  "valid array element type")
+
 
 -- |Builds the expression parser for arithmetic and logic expressions
 expr :: MParser Expr

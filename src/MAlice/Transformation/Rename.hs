@@ -11,7 +11,7 @@ import qualified MAlice.Language.Types as MAlice
 
 renameIdentifiers :: AST.Program -> AST.Program
 renameIdentifiers (AST.Program ds) =
-  Program $ runIdentity $ evalStateT (renameDecls ds) initState
+  Program $ runIdentity $ evalStateT (renameGlobalDecls ds) initState
 
 renameFPs :: String -> FormalParams -> Transform FormalParams
 renameFPs f (FPList ps) =
@@ -33,6 +33,40 @@ renameBody (StmtBody cst) = do
   return $ StmtBody rcst
 renameBody (EmptyBody) =
   return EmptyBody
+
+renameGlobalDecls :: Decls -> Transform Decls
+renameGlobalDecls (DeclList ds) =
+  DeclList `liftM` (mapM renameGlobalDecl ds)
+
+renameGlobalDecl :: Decl -> Transform Decl
+renameGlobalDecl (VarDecl typ var) = do
+  vname <- globalLabel var
+  insertSymbol var vname typ
+  return $ VarDecl typ vname
+-- A declaration with assignment
+renameGlobalDecl (VAssignDecl typ var e) = do
+  ne <- renameExpr e
+  vname <- globalLabel var
+  insertSymbol var vname typ
+  return $ VAssignDecl typ vname ne
+-- An array declaration
+renameGlobalDecl (VArrayDecl typ var e) = do
+  ne <- renameExpr e
+  vname <- globalLabel var
+  insertSymbol var vname typ
+  return $ VArrayDecl typ vname ne
+-- A function declaration
+renameGlobalDecl (FuncDecl f ps t body) = do
+  insertSymbol f f t
+  rps <- renameFPs f ps
+  rbody <- renameBody body
+  return $ FuncDecl f rps t rbody
+-- A procedure declaration
+renameGlobalDecl (ProcDecl f ps body) = do
+  insertSymbol f f MAlice.Void
+  rps <- renameFPs f ps
+  rbody <- renameBody body
+  return $ ProcDecl f rps rbody
 
 renameDecls :: Decls -> Transform Decls
 renameDecls (DeclList ds) =

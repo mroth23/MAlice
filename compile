@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-dist/build/compile/compile $1
+dist/build/compile/compile -c $1 -o "${1%.*}.j"
