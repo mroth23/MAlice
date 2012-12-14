@@ -103,6 +103,10 @@ annotateDecl (VArrayDecl _ var e) = do
 annotateDecl (FuncDecl f _ _ body) = do
   putVar f False
   annotateBody body
+-- We don't want to remove hatta...
+annotateDecl (ProcDecl "hatta" _ body) = do
+  putVar "hatta" True
+  annotateBody body
 annotateDecl (ProcDecl f _ body) = do
   putVar f False
   annotateBody body
