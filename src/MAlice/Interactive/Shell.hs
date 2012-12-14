@@ -24,7 +24,7 @@ rInitSt = (RuntimeState initState (Program $ DeclList []) [M.empty] "")
 --liftIO lifts IO actions to the MEval monad (which is an instance of MonadIO)
 userInputLoop :: MEval ()
 userInputLoop = do
-  liftIO $ putStr ">" >> hFlush stdout
+  liftIO $ putStr "\n>" >> hFlush stdout
   input <- liftIO getLine
   pst <- getParserState
   case parseUserInput pst input of

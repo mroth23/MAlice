@@ -83,7 +83,8 @@ isIntBinOp = flip elem (map fst intBinOps)
 
 intUnOps =
   [ ("+", id)
-  , ("-", negate) ]
+  , ("-", negate)
+  , ("~", complement)]
 
 isIntUnOp = flip elem (map fst intUnOps)
 
@@ -280,7 +281,8 @@ runStmt (SCall i (APList aps)) = do
 runStmt l@(SLoop cond cst) = do
   cond' <- evalBoolExpr cond
   if not cond'
-    then runCompoundStmt cst >> runStmt l
+    then do r <- runCompoundStmt cst
+            maybe (runStmt l) (return . Just) r
     else return Nothing
 runStmt (SIf ifs) =
   runIfs ifs
