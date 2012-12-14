@@ -3,7 +3,7 @@ module MAlice.SemanticAnalysis.ExprChecker
        , checkExpr_
        , inferType
        , inferTypeP
-       , TestResult(..)
+       , TestResult
        , getArrayType
        , getIdType
        , succeed
@@ -13,7 +13,6 @@ module MAlice.SemanticAnalysis.ExprChecker
 import MAlice.Language.AST
 import MAlice.Language.SymbolTable
 import MAlice.Language.Types
-import MAlice.Language.Utilities
 import MAlice.Parser.ParserState
 import Prelude hiding (fail)
 import Control.Monad hiding (fail)
@@ -107,19 +106,19 @@ inferType ex =
     EInt _         -> return Number
     EChar _        -> return Letter
     EBool _        -> return Boolean
-    EArrRef t v _  -> return t
+    EArrRef t _ _  -> return t
     ECall t _ _    -> return t
 
 -- A pure version of inferType, that doesn't report errors. This assumes that
 -- the program type checks correctly, and must only be used after the parsing
 -- stage. Used e.g. in the code generator for JVM to infer types of expressions.
 inferTypeP :: Expr -> Type
-inferTypeP ex@(EBinOp op e1 e2)
+inferTypeP (EBinOp op e1 _)
   | isBNumOp  op = inferTypeP e1
   | isBBoolOp op = inferTypeP e1
   | isRelOp   op = Boolean
   | isEqOp    op = Boolean
-inferTypeP ex@(EUnOp op e1)
+inferTypeP (EUnOp op e1)
   | isUBoolOp op = Boolean
   | isUNumOp  op = inferTypeP e1
 inferTypeP ex =
@@ -129,7 +128,7 @@ inferTypeP ex =
     EInt _         -> Number
     EChar _        -> Letter
     EBool _        -> Boolean
-    EArrRef t v _  -> t
+    EArrRef t _ _  -> t
     ECall t _ _    -> t
 
 -- |Helper function used to type-check unary expressions.
@@ -194,10 +193,10 @@ getArrayType var src = do
 
 -- |Checks if an expression has the expected type, if not an error is logged.
 checkExpr :: Type -> Expr -> String -> MParser ()
-checkExpr expected expr context = do
+checkExpr expected expr cxt = do
   actual <- inferType expr
   -- Set context after type checking the expression
-  setContext context
+  setContext cxt
   case actual of
     Invalid -> return ()
     actual' ->

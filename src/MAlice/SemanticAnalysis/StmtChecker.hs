@@ -15,7 +15,6 @@ import MAlice.Parser.ParserState
 import MAlice.SemanticAnalysis.ExprChecker
 
 import Prelude hiding (fail)
-import Control.Monad hiding (fail)
 
 -- |Check the type for an assignment operation. Reference types can't be
 -- assigned to, all other types accept assignments from equal types.
@@ -41,8 +40,8 @@ checkProcCall f as =
 
 -- |Helper function to type-check method calls.
 checkCall :: IdentifierType -> String -> ActualParams -> String -> MParser ()
-checkCall idtype f args context = do
-  setContext context
+checkCall idtype f args cxt = do
+  setContext cxt
   withIdKindCheck idtype f $ \t -> checkArgs args t
 
 -- |Checks whether the argument list given for a method matches its definition.
@@ -80,12 +79,12 @@ withIdExistenceCheck f success = do
 
 -- |Checks an assignment between two expressions for validity.
 checkAssignment :: Expr -> Expr -> MParser ()
-checkAssignment e1@(EId _ var) e2 = do
+checkAssignment e1@(EId t var) e2 = do
   withIdKindCheck IdVariable var $
-    \e -> checkAssignment' (returnType e) e1 e2
-checkAssignment e1@(EArrRef _ var _) e2 = do
-  atype <- getArrayType var e1
-  checkAssignment' atype e1 e2
+    const (checkAssignment' t e1 e2)
+checkAssignment e1@(EArrRef t var _) e2 = do
+  withIdKindCheck IdVariable var $
+    const (checkAssignment' t e1 e2)
 checkAssignment e1 e2 = do
   setContext $ (show e1) ++ " became " ++ (show e2)
   logError . TypeError $
@@ -105,13 +104,13 @@ checkAssignment' t1 e1 e2 = do
 
 -- |Checks whether the given expression can be read into.
 checkInput :: Expr -> MParser ()
-checkInput e@(EId v var) = do
+checkInput e@(EId v _) = do
   setContext $ "what was " ++ (show e) ++ "?"
   case v of
     (RefType _) -> logError . TypeError $ "Can't read in to reference type"
     _           -> return ()
 
-checkInput e@(EArrRef atype arr _) = do
+checkInput (EArrRef atype _ _) = do
   case atype of
     (RefType _) -> logError . TypeError $ "Can't read in to reference type"
     _           -> return ()
@@ -134,12 +133,12 @@ checkReturnType e = do
   t  <- inferType e
   case f' of
     Nothing -> logError . InvalidReturnError $ "outside of function body"
-    Just e  ->
-      case idType e of
+    Just f''  ->
+      case idType f'' of
         IdFunction ->
-          if t == returnType  e
+          if t == returnType f''
           then return ()
           else logError . InvalidReturnError $ "type mismatch, expected " ++
-               show (returnType e) ++ ", got " ++ show t
+               show (returnType f'') ++ ", got " ++ show t
         _          ->
           logError . InvalidReturnError $ "inside a procedure"

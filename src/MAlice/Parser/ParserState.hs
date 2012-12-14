@@ -20,12 +20,10 @@ module MAlice.Parser.ParserState
        , clearPosition )
 where
 
-import MAlice.Language.AST (Expr)
 import MAlice.Language.Types
 import MAlice.Language.SymbolTable
-import MAlice.Language.Utilities
-import Text.Parsec.Prim (Parsec (..), getPosition)
-import Text.Parsec.Pos (SourcePos(..))
+import Text.Parsec.Prim (Parsec, getPosition)
+import Text.Parsec.Pos (SourcePos)
 import Text.Parsec (getState, updateState)
 import Control.Monad (liftM)
 
@@ -69,7 +67,7 @@ instance Show SemanticErrors where
   show =
     concatMap (
       \(err, pos, inp) ->
-      "Semantic error in " ++ show pos ++ ":\n>\t "++
+      "Semantic error in " ++ show pos ++ ":\n>  "++
        inp ++ "\n" ++ show err ++ "\n\n") .
     errors
 
@@ -80,7 +78,7 @@ newtype SemanticWarnings =
 instance Show SemanticWarnings where
   -- Prints all warnings contained in the data type line by line
   show =
-    concatMap (\(wrn, pos, inp) ->
+    concatMap (\(wrn, pos, _) ->
                 "Warning in " ++ show pos
                 ++ ":\n" ++ show wrn ++ "\n") .
     warnings
@@ -131,7 +129,7 @@ logError perr = do
   inp <- getContext
   let el    = errorList st
       newEl = el { errors = errors el ++ [(perr, pos, inp)]}
-  updateState $ \st -> st { errorList = newEl }
+  updateState $ \st' -> st' { errorList = newEl }
 
 -- |Logs a warning to the parser state together with the current position
 logWarning :: SemanticWarning -> MParser ()
@@ -141,19 +139,19 @@ logWarning perr = do
   inp <- getContext
   let el    = warnList st
       newEl = el { warnings = warnings el ++ [(perr, pos, inp)]}
-  updateState $ \st -> st { warnList = newEl }
+  updateState $ \st' -> st' { warnList = newEl }
 
 -- |Adds a new symbol table for a scope with a given name
 newSymbolTable :: String -> MParser ()
 newSymbolTable scope =
   updateState $ \st -> st { symTables = [] : symTables st
-                          , scopes = scope : scopes st }
+                          , scopes   = scope : scopes st }
 
 -- |Removes the "newest" symbol table in the hierarchy
 removeSymbolTable :: MParser ()
 removeSymbolTable =
   updateState $ \st -> st { symTables = tail . symTables $ st
-                          , scopes = tail . scopes $ st }
+                         , scopes    = tail . scopes $ st }
 
 -- |Pulls the symbol table hierarchy (stack) out of the parser state
 getSymbolTables :: MParser [SymbolTable]
@@ -175,15 +173,15 @@ checkLocalIdentifier :: String -> MParser ()
 checkLocalIdentifier ident = do
   currentDecl <- findLocalIdentifier ident
   case currentDecl of
-    (Just ste) -> logError . MultipleDeclarationError $ ident
-    _          -> return ()
+    (Just _) -> logError . MultipleDeclarationError $ ident
+    _        -> return ()
 
 -- |Inserts a symbol into the symbol table
 insertSymbol :: String -> Type -> IdentifierType -> ArgTypes -> MParser ()
 insertSymbol ident vartype idtype argtypes = do
   setContext $ "Declaration of '"++ident ++ "' with type "++ (show vartype)
   checkLocalIdentifier ident
-  (t:ts) <- getSymbolTables
+  (t : ts) <- getSymbolTables
   let newt = addSymbol ident vartype idtype argtypes t
   updateState $ \st -> st { symTables = newt : ts }
 
@@ -215,7 +213,7 @@ getCPos = do
   st <- getState
   case customPos st of
     [] -> getPosition
-    (p:ps) -> return p
+    (p : _) -> return p
 
 -- |Records the current position for later use.
 recordPosition :: MParser ()
@@ -228,8 +226,8 @@ clearPosition :: MParser ()
 clearPosition = do
   st <- getState
   case customPos st of
-    [] -> return ()
-    (_:ps) -> setCPos ps
+    []       -> return ()
+    (_ : ps) -> setCPos ps
 
 setCPos :: [SourcePos] -> MParser ()
 setCPos ps =

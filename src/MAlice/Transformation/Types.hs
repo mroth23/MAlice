@@ -1,8 +1,7 @@
 module MAlice.Transformation.Types where
 
-import qualified MAlice.Language.Types as MAlice
+import MAlice.Language.Types as MAlice
 import MAlice.Language.AST as AST
-import MAlice.Language.Types
 
 import Data.Maybe
 import qualified Data.Map as M
@@ -103,7 +102,7 @@ newSymbolTable = do
 
 removeSymbolTable :: Transform ()
 removeSymbolTable = do
-  (t : ts) <- getSymbolTables
+  (_ : ts) <- getSymbolTables
   updateState $ \st -> st { symTables = ts }
 
 updateState :: (TState -> TState) -> Transform ()

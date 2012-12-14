@@ -1,8 +1,6 @@
 module MAlice.Language.SymbolTable where
 
 import MAlice.Language.Types (Type(..))
-import MAlice.Language.AST (Expr)
-import Control.Monad
 
 type SymbolTable = [SymbolTableEntry]
 
@@ -35,7 +33,7 @@ type ArgTypes = [Type]
 -- definition returned first, or Nothing returned if the identifier is
 -- undefined.
 lookupInTables :: String -> [SymbolTable] -> Maybe SymbolTableEntry
-lookupInTables symbol [] =
+lookupInTables _ [] =
   Nothing
 lookupInTables symbol (t:ts) =
   case lookupInTable symbol t of
@@ -51,7 +49,7 @@ lookupInTable symbol (entry:rest)
 
 -- |Checks whether an identifier is defined in the given symbol table.
 existsInTable :: String -> SymbolTable -> Bool
-existsInTable symbol [] = False
+existsInTable _ [] = False
 existsInTable symbol (entry:rest)
   | idString entry == symbol = True
   | otherwise               = existsInTable symbol rest

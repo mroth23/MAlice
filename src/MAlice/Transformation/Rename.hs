@@ -19,7 +19,7 @@ renameFPs f (FPList ps) =
 
 renameFP :: String -> FormalParam -> Transform FormalParam
 renameFP f (Param t var) = do
-  pname <- paramLabel var
+  pname <- paramLabel $ f ++ "_" ++ var
   insertSymbol var pname t
   return $ Param t pname
 
