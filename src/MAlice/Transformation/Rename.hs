@@ -137,8 +137,11 @@ renameCompoundStmt (CSList ss) =
   CSList `liftM` (mapM renameStmt ss)
 
 renameStmt :: Stmt -> Transform Stmt
-renameStmt (SBody b) =
-  SBody `liftM` (renameBody b)
+renameStmt (SBody b) = do
+  newSymbolTable
+  rb <- renameBody b
+  exitBlock
+  return $ SBody rb
 renameStmt (SNull) =
   return SNull
 renameStmt (SAssign e1 e2) = do
