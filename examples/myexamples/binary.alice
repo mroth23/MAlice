@@ -1,0 +1,16 @@
+arrSize was a  number of 12.
+arr had arrSize number.
+
+The looking-glass hatta ()
+opened
+  toFind was a number.
+
+  i was a number of 0.
+  eventually (i == arrSize) because
+    arr's i piece became 0.
+    i ate.
+  enough times
+  .
+closed
+
+
