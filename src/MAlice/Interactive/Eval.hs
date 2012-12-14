@@ -279,7 +279,7 @@ runStmt (SCall i (APList aps)) = do
   return Nothing
 runStmt l@(SLoop cond cst) = do
   cond' <- evalBoolExpr cond
-  if cond'
+  if not cond'
     then runCompoundStmt cst >> runStmt l
     else return Nothing
 runStmt (SIf ifs) =
