@@ -3,8 +3,8 @@ module Main where
 import System.Environment
 import System.Exit
 import System.Console.GetOpt
-import qualified MAlice.CodeGen.JavaByteCode     as J
-import qualified MAlice.CodeGen.JavaByteCodeUtil as J
+import qualified MAlice.CodeGen.JavaBytecode     as J
+import qualified MAlice.CodeGen.JavaBytecodeUtil as J
 import qualified MAlice.Language.AST             as AST
 import qualified MAlice.Language.PrettyPrint     as PP
 import qualified MAlice.Parser.Parser            as MP
