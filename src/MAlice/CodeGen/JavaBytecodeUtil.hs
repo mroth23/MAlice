@@ -2,9 +2,6 @@ module MAlice.CodeGen.JavaBytecodeUtil where
 
 import MAlice.CodeGen.JavaBytecodeInstr
 import MAlice.Language.Types
-import Data.IORef
-import System.IO.Unsafe
-
 
 -- Given code will extract the function code and return you rest too.
 splitFunctionFromProgram :: JProgram -> (JProgram, JProgram)
@@ -184,10 +181,4 @@ convertConstructor' program
       where
         hatta = getClassName++"/"++"hatta"
 
-className :: IORef String
-{-# NOINLINEclassName #-}
-className = unsafePerformIO $ newIORef "..........."
-
-setClassName str = unsafePerformIO $ writeIORef className str
-getClassName     = unsafePerformIO $ readIORef className
 

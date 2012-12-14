@@ -1,5 +1,8 @@
 module MAlice.CodeGen.JavaBytecodeInstr where 
 
+import Data.IORef
+import System.IO.Unsafe
+
 type JProgram = [JInstr]
 
 data JInstr =
@@ -104,9 +107,9 @@ instance Show JInstr where
     = ".method public static main([Ljava/lang/String;)V\n" ++
       ".limit stack 2\n " ++
       ".limit locals 1\n " ++
-      "new " ++ "Myclass" ++ "\n" ++
+      "new " ++ getClassName ++ "\n" ++
       "dup\n" ++
-      "invokespecial " ++ "Myclass" ++ "/<init>()V\n" ++
+      "invokespecial " ++ getClassName  ++ "/<init>()V\n" ++
       "astore_0\n" ++
       "return\n"   ++
       ".end method\n"
@@ -239,12 +242,13 @@ data FParam =
   FString  |
   FArray
 
-{- data FType =
-  FInt        |
-  FString     |
-  FArray FInt |
-  FArray FType -}
-
 type Label = String
 type AType = Int
 type Index = Int
+
+className :: IORef String
+{-# NOINLINEclassName #-}
+className = unsafePerformIO $ newIORef "..........."
+
+setClassName str = unsafePerformIO $ writeIORef className str
+getClassName     = unsafePerformIO $ readIORef className
