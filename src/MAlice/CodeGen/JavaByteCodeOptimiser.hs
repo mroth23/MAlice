@@ -104,8 +104,40 @@ optimise ((AStore_2):(ALoad_2):rest)
   = (Dup):(AStore_2):(optimise rest)
 optimise ((AStore_3):(ALoad_3):rest)
   = (Dup):(AStore_3):(optimise rest)
+-- Optimise simple comparisons.
+optimise ((If_icmpeq l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifne l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmpeq l5):(optimise rest)
+-- Optimise printing.
+optimise ((Getstatic systemOutLibrary printStream):(loadInstr):(Invokevirtual print stringLib void):rest)
+  = [Getstatic systemOutLibrary printStream] ++
+    dups                                      ++
+    [loadInstr]                               ++
+    [Invokevirtual print stringLib void]      ++
+    rest''                              
+    where
+      (rest', num) = stripPrintStatic rest
+      rest''       = optimise rest'
+      dups         = makeDups num
 optimise (instr:rest)
   = instr:(optimise rest)
+
+systemOutLib = "java/lang/System/out"
+printStream  = "Lhava/io/PrintStream"
+print        = "java/io/PrintStream/print"
+stringLib    = "Ljava/lang/String;"
+void         = "V"
+
+stripPrintStatic :: JProgram -> (JProgram, Int)
+stripPrintStatic ((Getstatic systemOutLibrary printStream):(loadInstr):(Invokevirtual print stringLib void):rest)
+  = ((loadInstr):(Invokevirtual print stringLib void):rest', n'+1)
+    where
+      (rest', n') = stripPrintStatic rest
+stripPrintStatic rest 
+  = (rest, 0)
+
+makeDups :: Int -> JProgram
+makeDups n
+  = replicate n Dup 
 
 setLocalVarNums :: JProgram -> JProgram
 setLocalVarNums []

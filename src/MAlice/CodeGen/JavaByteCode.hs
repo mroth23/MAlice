@@ -614,7 +614,6 @@ translateParams ((EId (Ref t) ident):rest) varTable methTable labelTable
       (params, labelTable', refTable) = translateParams rest ((Local "." num "."):varTable) methTable labelTable
       makeNewVarObject                = translateObjectWrapper t ident varTable
       num                             = getNewLocalVar varTable 1
-
 translateParams (expr:rest) varTable methTable labelTable
   = (exprInstrs ++ params, labelTable'', refTable)
       where
