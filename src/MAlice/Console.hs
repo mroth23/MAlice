@@ -106,7 +106,7 @@ compile code name pp output = do
   let optAST     = T.optimiseAST parsedAST
       trans      = T.renameIdentifiers optAST
       desugared  = T.desugarAST trans
-      byteCode   = J.translateProgram desugared
+      byteCode   = J.translateProgram desugared (bname name)
       warn       = case MP.warnings . MP.warnList $ st of
         [] -> return ()
         _  -> putStrLn . show $ MP.warnList st
@@ -118,3 +118,6 @@ compile code name pp output = do
 parseCode :: String -> String -> Either String (AST.Program, MP.ParserState)
 parseCode code name =
   MP.mparse code name
+
+bname :: String -> String
+bname s = reverse $ tail $ dropWhile (/='.') (reverse s)

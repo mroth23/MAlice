@@ -13,7 +13,7 @@ import MAlice.Parser.ParserState
 
 main :: Maybe String -> IO ()
 main s = do
-  putStrLn "MAlice interactive shell version M3.00, type :? for help"
+  putStrLn "MAlice interactive shell version M3.01, type :? for help"
   putStrLn "--------------------------------------------------------"
   is <- maybe (return rInitSt) (loadAndRun) s
   evalStateT userInputLoop is
