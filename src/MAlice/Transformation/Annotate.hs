@@ -6,7 +6,6 @@ import Control.Monad
 import Control.Monad.Identity
 import Control.Monad.State
 import Data.List
-import Data.Maybe
 import MAlice.Transformation.Types
 import MAlice.Language.AST as AST
 import MAlice.Language.Types

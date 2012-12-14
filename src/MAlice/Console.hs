@@ -27,8 +27,9 @@ main = do
       (i, f) = optInteractive opts
       pp     = optPPrint opts
       file   = inputFileName opts
-  compileFile input output pp file
-
+  if i
+    then I.main f
+    else compileFile input output pp file
 
 putOthers :: [String] -> IO ()
 putOthers [] = return ()
@@ -98,7 +99,8 @@ compileFile input output pp file = do
     Left err -> putStrLn err
     Right act -> act
 
-compile :: String -> String -> (String -> IO ()) -> (String -> IO ()) -> Either String (IO ())
+compile :: String -> String -> (String -> IO ()) ->
+           (String -> IO ()) -> Either String (IO ())
 compile code name pp output = do
   (parsedAST, st) <- parseCode code name
   let optAST     = T.optimiseAST parsedAST

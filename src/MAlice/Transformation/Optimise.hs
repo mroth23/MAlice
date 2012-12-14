@@ -143,7 +143,6 @@ optimiseExpr (EBinOp "*" (EInt 1) e) = e
 optimiseExpr (EBinOp "*" e (EInt 1)) = e
 optimiseExpr (EBinOp "*" e (EUnOp "-" (EInt 1))) = EUnOp "-" e
 optimiseExpr (EBinOp "*" (EUnOp "-" (EInt 1)) e) = EUnOp "-" e
-optimiseExpr (EBinOp "/" (EInt 1) e) = e
 optimiseExpr (EBinOp "/" e (EInt 1)) = e
 optimiseExpr (EBinOp "/" (EInt 0) e) = EInt 0
 optimiseExpr (EBinOp "/" e (EUnOp "-" (EInt 1))) = EUnOp "-" e

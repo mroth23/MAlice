@@ -2,6 +2,7 @@ module MAlice.Parser.Parser
        ( mparse
        , compoundStmt
        , expr
+       , decl
        ) where
 
 import Text.Parsec hiding (spaces)
@@ -58,7 +59,6 @@ reserved   = T.reserved      lexer -- parses a reserved name
 reservedOp = T.reservedOp    lexer -- parses an operator
 parens     = T.parens        lexer -- parses surrounding brackets
 intLit     = T.integer       lexer -- parses an integer
-semi       = T.semi          lexer -- parses a semicolon
 whiteSpace = T.whiteSpace    lexer -- parses whitespace
 stringLit  = T.stringLiteral lexer -- parses string literal
 charLit    = T.charLiteral   lexer -- parses char literal
@@ -266,12 +266,14 @@ exprStmt = (do {
   (do { reserved "ate"
       ; terminator
       ; checkExpr Number e1 (show e1 ++ " ate")
+      ; checkAssignment e1 (EBinOp "+" e1 (EInt 1))
       ; clearPosition
       ; return $ SInc e1 })       <|>
   -- Decrement
   (do { reserved "drank"
       ; terminator
       ; checkExpr Number e1 (show e1 ++ " drank")
+      ; checkAssignment e1 (EBinOp "-" e1 (EInt 1))
       ; clearPosition
       ; return $ SDec e1 })       <|>
   -- Print #1

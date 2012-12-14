@@ -10,10 +10,10 @@ collectDecls (DeclList ds) =
   DeclList $ concatMap collectDecl ds
 
 collectDecl :: Decl -> [Decl]
-collectDecl d@(FuncDecl f fps t b) =
+collectDecl (FuncDecl f fps t b) =
   let (nb, ds) = collectBody b in
   concatMap collectDecl ds ++ [FuncDecl f fps t nb]
-collectDecl d@(ProcDecl f fps b) =
+collectDecl (ProcDecl f fps b) =
   let (nb, ds) = collectBody b in
   concatMap collectDecl ds ++ [ProcDecl f fps nb]
 collectDecl d = [d]

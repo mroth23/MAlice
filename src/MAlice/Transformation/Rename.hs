@@ -19,7 +19,7 @@ renameFPs f (FPList ps) =
 
 renameFP :: String -> FormalParam -> Transform FormalParam
 renameFP f (Param t var) = do
-  pname <- paramLabel var
+  pname <- paramLabel $ f ++ "_" ++ var
   insertSymbol var pname t
   return $ Param t pname
 
@@ -137,8 +137,11 @@ renameCompoundStmt (CSList ss) =
   CSList `liftM` (mapM renameStmt ss)
 
 renameStmt :: Stmt -> Transform Stmt
-renameStmt (SBody b) =
-  SBody `liftM` (renameBody b)
+renameStmt (SBody b) = do
+  newSymbolTable
+  rb <- renameBody b
+  exitBlock
+  return $ SBody rb
 renameStmt (SNull) =
   return SNull
 renameStmt (SAssign e1 e2) = do

@@ -4,7 +4,6 @@ import MAlice.Language.AST
 import MAlice.Transformation.Abstract
 import MAlice.Transformation.Annotate
 import MAlice.Transformation.Collect
-import MAlice.Transformation.Types
 
 -- This module contains functions to "desugar" MAlice code. Most importantly,
 -- inner functions are lifted to global level. This is done in three passes:
