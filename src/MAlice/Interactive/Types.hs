@@ -4,6 +4,7 @@ import qualified Data.Vector as V
 import qualified Data.Map as M
 import Data.Maybe
 import Control.Monad
+import Control.Monad.Error
 import Control.Monad.State
 import MAlice.Language.AST
 import MAlice.Language.Types
@@ -36,9 +37,9 @@ data Var =
   MDecl  (Decl)
   deriving (Eq)
 
-showM Nothing = "Uninitialised variable"
+showM Nothing = "uninitialised variable"
 showM (Just a) = show a
-showMS Nothing = "Uninitialised variable"
+showMS Nothing = "uninitialised variable"
 showMS (Just s) = s
 
 instance Show Var where
@@ -47,7 +48,11 @@ instance Show Var where
   show (ChrVar mc) = showM mc
   show (BolVar mb) = showM mb
 
-type MEval a = StateT RuntimeState IO a
+type MEval = StateT RuntimeState IO
+type MExec a = ErrorT String MEval a
+
+runMExec :: MExec a -> MEval (Either String a)
+runMExec = runErrorT
 
 data RuntimeState = RuntimeState
                     { parserState  :: ParserState

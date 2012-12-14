@@ -15,13 +15,22 @@ main :: Maybe String -> IO ()
 main s = do
   putStrLn "MAlice interactive shell version M3.00, type :? for help"
   putStrLn "--------------------------------------------------------"
-  is <- maybe (return rInitSt) (flip execStateT rInitSt . loadFile) s
+  is <- maybe (return rInitSt) (loadAndRun) s
   evalStateT userInputLoop is
+
+loadAndRun :: String -> IO RuntimeState
+loadAndRun s = do
+  st <- execStateT (loadFile s) rInitSt
+  execStateT (runMExec $ evalGlobals_) st
+
+evalGlobals_ :: MExec ()
+evalGlobals_ = do
+  st <- lift get
+  evalGlobals (programAST st)
 
 rInitSt = (RuntimeState initState (Program $ DeclList []) [M.empty] "")
 
 --Executing this with evalStateT will yield an IO () action
---liftIO lifts IO actions to the MEval monad (which is an instance of MonadIO)
 userInputLoop :: MEval ()
 userInputLoop = do
   liftIO $ putStr "\n>" >> hFlush stdout
@@ -29,22 +38,33 @@ userInputLoop = do
   pst <- getParserState
   case parseUserInput pst input of
     Left err -> (liftIO $ putStrLn err) >> userInputLoop
-    Right (i, pst') ->
-      handleInput i >>
-      (modifyState $ \st -> st { parserState = resetErrors pst' }) >>
-      userInputLoop
+    Right (i, pst') -> do
+      inputRes <- runMExec $ handleInput i
+      case inputRes of
+        Left err -> (liftIO $ putStrLn err) >> userInputLoop
+        Right _ -> do
+          modifyState $ \st -> st { parserState = resetErrors pst' }
+          userInputLoop
 
 resetErrors :: ParserState -> ParserState
 resetErrors st = st { errorList = SemanticErrors [] }
 
-handleInput :: UserInput -> MEval ()
-handleInput (Command Quit) = liftIO . exitWith $ ExitSuccess
-handleInput (Command Help) = liftIO . putStrLn $ helpMessage
-handleInput (Command ReloadFile) = getCurrentFile >>= loadFile
-handleInput (Command (LoadFile f)) = loadFile f
-handleInput (EvalDecl d) = runDecl d
-handleInput (EvalExpr e) = evalExpr e >>= (liftIO . putStrLn . show)
-handleInput (EvalStmt c) = runCompoundStmt c >> return ()
+handleInput :: UserInput -> MExec ()
+handleInput (Command Quit) =
+  lift . liftIO . exitWith $ ExitSuccess
+handleInput (Command Help) =
+  lift . liftIO . putStrLn $ helpMessage
+handleInput (Command ReloadFile) =
+  lift $ getCurrentFile >>= loadFile
+handleInput (Command (LoadFile f)) = do
+  lift $ loadFile f
+  evalGlobals_
+handleInput (EvalDecl d) =
+  runDecl d
+handleInput (EvalExpr e) =
+  evalExpr e >>= (liftIO . putStrLn . show)
+handleInput (EvalStmt c) =
+  runCompoundStmt c >> return ()
 
 loadFile :: String -> MEval ()
 loadFile f = do
@@ -60,7 +80,7 @@ parseCode f code = do
       modifyState $ \st -> st { parserState = pst
                               , programAST  = ast
                               , currentFile = f }
-      evalGlobals ast
+
 
 -- If reading the file fails, return Nothing
 safeRead :: String -> MEval (Maybe String)

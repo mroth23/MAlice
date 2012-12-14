@@ -53,4 +53,5 @@ executable compile
     parsec,
     mtl,
     containers,
-    vector
+    vector,
+    transformers     == 0.3.*
