@@ -1,7 +1,7 @@
-module MAlice.CodeGen.JavaByteCodeUnitialisedReferences where
+module MAlice.CodeGen.JavaBytecodeUnitialisedReferences where
 
-import MAlice.CodeGen.JavaByteCodeInstr
-import MAlice.CodeGen.JavaByteCodeUtil
+import MAlice.CodeGen.JavaBytecodeInstr
+import MAlice.CodeGen.JavaBytecodeUtil
 
 setupUnitialisedReferences :: JProgram -> LabelTable -> (JProgram, LabelTable)
 setupUnitialisedReferences [] _

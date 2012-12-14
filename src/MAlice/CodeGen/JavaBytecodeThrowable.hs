@@ -1,7 +1,7 @@
-module MAlice.CodeGen.JavaByteCodeThrowable where
+module MAlice.CodeGen.JavaBytecodeThrowable where
 
-import MAlice.CodeGen.JavaByteCodeInstr
-import MAlice.CodeGen.JavaByteCodeUtil
+import MAlice.CodeGen.JavaBytecodeInstr
+import MAlice.CodeGen.JavaBytecodeUtil
 
 setupThrowableIfRequired :: JProgram -> JProgram
 setupThrowableIfRequired program

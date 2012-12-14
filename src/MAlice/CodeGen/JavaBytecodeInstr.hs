@@ -1,4 +1,4 @@
-module MAlice.CodeGen.JavaByteCodeInstr where 
+module MAlice.CodeGen.JavaBytecodeInstr where 
 
 type JProgram = [JInstr]
 
@@ -102,8 +102,8 @@ instance Show JInstr where
     = ".super java/lang/Object\n"
   show (MainMethod)
     = ".method public static main([Ljava/lang/String;)V\n" ++
-      ".limit stack 100\n " ++
-      ".limit locals 100\n " ++
+      ".limit stack 2\n " ++
+      ".limit locals 1\n " ++
       "new " ++ "Myclass" ++ "\n" ++
       "dup\n" ++
       "invokespecial " ++ "Myclass" ++ "/<init>()V\n" ++

@@ -1,7 +1,7 @@
-module MAlice.CodeGen.JavaByteCodeMissingReturns where
+module MAlice.CodeGen.JavaBytecodeMissingReturns where
 
-import MAlice.CodeGen.JavaByteCodeInstr
-import MAlice.CodeGen.JavaByteCodeUtil
+import MAlice.CodeGen.JavaBytecodeInstr
+import MAlice.CodeGen.JavaBytecodeUtil
 
 -- JVM won't let you get to end of function with correct return.
 setupMissingReturns :: JProgram -> JProgram

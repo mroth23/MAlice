@@ -1,7 +1,7 @@
-module MAlice.CodeGen.JavaByteCodeStackCalculator where
+module MAlice.CodeGen.JavaBytecodeStack where
 
-import MAlice.CodeGen.JavaByteCodeInstr
-import MAlice.CodeGen.JavaByteCodeUtil
+import MAlice.CodeGen.JavaBytecodeInstr
+import MAlice.CodeGen.JavaBytecodeUtil
 
 setupMethodStacks :: JProgram -> JProgram
 setupMethodStacks []

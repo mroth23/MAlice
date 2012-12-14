@@ -1,13 +1,13 @@
-module MAlice.CodeGen.JavaByteCodeOptimiser where
+module MAlice.CodeGen.JavaBytecodeOptimiser where
 
-import MAlice.CodeGen.JavaByteCodeInstr
+import MAlice.CodeGen.JavaBytecodeInstr
 
 opt :: JProgram -> JProgram
 opt program
   = program''
-    where 
-      program'  = optimiseOverAndOver program
-      program'' = setLocalVarNums program'
+    where
+      program'   = concatPrintableStrings program
+      program''  = optimiseOverAndOver program'
 
 optimiseOverAndOver :: JProgram -> JProgram
 optimiseOverAndOver program =
@@ -107,9 +107,31 @@ optimise ((AStore_3):(ALoad_3):rest)
 -- Optimise simple comparisons.
 optimise ((If_icmpeq l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifne l5):rest)
   | l1 == l3 && l2 == l4 = (If_icmpeq l5):(optimise rest)
+optimise ((If_icmpne l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifne l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmpne l5):(optimise rest)
+optimise ((If_icmplt l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifne l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmplt l5):(optimise rest)
+optimise ((If_icmpgt l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifne l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmpgt l5):(optimise rest)
+optimise ((If_icmple l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifne l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmple l5):(optimise rest)
+optimise ((If_icmpge l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifne l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmpge l5):(optimise rest)
+optimise ((If_icmpeq l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifeq l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmpne l5):(optimise rest)
+optimise ((If_icmpne l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifeq l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmpeq l5):(optimise rest)
+optimise ((If_icmplt l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifeq l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmpge l5):(optimise rest)
+optimise ((If_icmpgt l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifeq l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmple l5):(optimise rest)
+optimise ((If_icmple l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifeq l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmpgt l5):(optimise rest)
+optimise ((If_icmpge l1):(IConst_0):(Goto l2):(LLabel l3):(IConst_1):(LLabel l4):(Ifeq l5):rest)
+  | l1 == l3 && l2 == l4 = (If_icmplt l5):(optimise rest)
 -- Optimise printing.
-optimise ((Getstatic systemOutLibrary printStream):(loadInstr):(Invokevirtual print stringLib void):rest)
-  = [Getstatic systemOutLibrary printStream] ++
+optimise ((Getstatic systemOutLib printStream):(loadInstr):(Invokevirtual print stringLib void):rest)
+  = [Getstatic systemOutLib printStream] ++
     dups                                      ++
     [loadInstr]                               ++
     [Invokevirtual print stringLib void]      ++
@@ -121,14 +143,14 @@ optimise ((Getstatic systemOutLibrary printStream):(loadInstr):(Invokevirtual pr
 optimise (instr:rest)
   = instr:(optimise rest)
 
-systemOutLib = "java/lang/System/out"
-printStream  = "Lhava/io/PrintStream"
-print        = "java/io/PrintStream/print"
-stringLib    = "Ljava/lang/String;"
-void         = "V"
+systemOutLib  = "java/lang/System/out"
+printStream   = "Ljava/io/PrintStream;"
+pprint        = "java/io/PrintStream/print"
+stringLib     = "Ljava/lang/String;"
+void          = "V"
 
 stripPrintStatic :: JProgram -> (JProgram, Int)
-stripPrintStatic ((Getstatic systemOutLibrary printStream):(loadInstr):(Invokevirtual print stringLib void):rest)
+stripPrintStatic ((Getstatic systemOutLib printStream):(loadInstr):(Invokevirtual print stringLib void):rest)
   = ((loadInstr):(Invokevirtual print stringLib void):rest', n'+1)
     where
       (rest', n') = stripPrintStatic rest
@@ -139,35 +161,16 @@ makeDups :: Int -> JProgram
 makeDups n
   = replicate n Dup 
 
-setLocalVarNums :: JProgram -> JProgram
-setLocalVarNums []
+concatPrintableStrings :: JProgram -> JProgram
+concatPrintableStrings []
   = []
-setLocalVarNums ((Func label params return numParams):rest)
-  = (Func label params return numParams):(LocalsLimit num):
-    (setLocalVarNums rest)
-      where
-	num = 1 + (max numParams (getNumOfLocalVars rest))
-setLocalVarNums (instr:rest)
-  = instr:(setLocalVarNums rest)
-
-getNumOfLocalVars :: JProgram -> Int
-getNumOfLocalVars ((Endmethod):rest)
-  = 0
-getNumOfLocalVars ((IStore num):rest)
-  = max num (getNumOfLocalVars rest)
-getNumOfLocalVars ((IStore_1):rest)
-  = max 1 (getNumOfLocalVars rest)
-getNumOfLocalVars ((IStore_2):rest)
-  = max 2 (getNumOfLocalVars rest)
-getNumOfLocalVars ((IStore_3):rest)
-  = max 3 (getNumOfLocalVars rest)
-getNumOfLocalVars ((AStore num):rest)
-  = max num (getNumOfLocalVars rest)
-getNumOfLocalVars ((AStore_1):rest)
-  = max 1 (getNumOfLocalVars rest)
-getNumOfLocalVars ((AStore_2):rest)
-  = max 2 (getNumOfLocalVars rest)
-getNumOfLocalVars ((AStore_3):rest)
-  = max 3 (getNumOfLocalVars rest)
-getNumOfLocalVars (instr:rest)
-  = getNumOfLocalVars rest
+concatPrintableStrings ((Getstatic sysLib1 stream1):(Ldc (ConsS str1)):(Invokevirtual print1 strLib1 v1):(Getstatic sysLib2 stream2):(Ldc (ConsS str2)):(Invokevirtual print2 strLib2 v2):rest)
+  | sysLib1 == sysLib2 && sysLib1 == systemOutLib &&
+    stream1 == stream2 && stream1 == printStream  &&
+    print1  == print2  && print1  == pprint       &&
+    strLib1 == strLib2 && strLib1 == stringLib    &&
+    v1      == v2      && v1      == void
+      = concatPrintableStrings
+        ((Getstatic sysLib1 stream1):(Ldc (ConsS (str1++str2))):(Invokevirtual print1 strLib1 v1):rest)
+concatPrintableStrings (instr:rest)
+  = instr:(concatPrintableStrings rest)

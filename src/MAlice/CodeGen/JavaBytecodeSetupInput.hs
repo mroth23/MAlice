@@ -1,7 +1,7 @@
-module MAlice.CodeGen.JavaByteCodeSetupInput where
+module MAlice.CodeGen.JavaBytecodeSetupInput where
 
-import MAlice.CodeGen.JavaByteCodeInstr
-import MAlice.CodeGen.JavaByteCodeUtil
+import MAlice.CodeGen.JavaBytecodeInstr
+import MAlice.CodeGen.JavaBytecodeUtil
 
 usesInput :: JProgram -> Bool
 usesInput []

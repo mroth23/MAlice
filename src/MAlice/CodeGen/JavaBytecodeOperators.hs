@@ -1,7 +1,7 @@
-module MAlice.CodeGen.JavaByteCodeOperators where
+module MAlice.CodeGen.JavaBytecodeOperators where
 
-import MAlice.CodeGen.JavaByteCodeInstr
-import MAlice.CodeGen.JavaByteCodeUtil
+import MAlice.CodeGen.JavaBytecodeInstr
+import MAlice.CodeGen.JavaBytecodeUtil
 
 translateBinOp :: String -> LabelTable -> (JProgram, LabelTable)
 translateBinOp "+" labelTable  = ([IAdd], labelTable)

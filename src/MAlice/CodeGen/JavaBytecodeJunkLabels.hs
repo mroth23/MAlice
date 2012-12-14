@@ -1,7 +1,7 @@
-module MAlice.CodeGen.JavaByteCodeJunkLabels where
+module MAlice.CodeGen.JavaBytecodeJunkLabels where
 
-import MAlice.CodeGen.JavaByteCodeInstr
-import MAlice.CodeGen.JavaByteCodeUtil
+import MAlice.CodeGen.JavaBytecodeInstr
+import MAlice.CodeGen.JavaBytecodeUtil
 
 getJunkLabels :: JProgram -> LabelTable
 getJunkLabels []

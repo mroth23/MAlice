@@ -1,15 +1,16 @@
-module MAlice.CodeGen.JavaByteCode where
+module MAlice.CodeGen.JavaBytecode where
 
-import MAlice.CodeGen.JavaByteCodeInstr
-import MAlice.CodeGen.JavaByteCodeOptimiser
-import MAlice.CodeGen.JavaByteCodeUnitialisedReferences
-import MAlice.CodeGen.JavaByteCodeStackCalculator
-import MAlice.CodeGen.JavaByteCodeUtil
-import MAlice.CodeGen.JavaByteCodeMissingReturns
-import MAlice.CodeGen.JavaByteCodeThrowable
-import MAlice.CodeGen.JavaByteCodeJunkLabels
-import MAlice.CodeGen.JavaByteCodeSetupInput
-import MAlice.CodeGen.JavaByteCodeOperators
+import MAlice.CodeGen.JavaBytecodeInstr
+import MAlice.CodeGen.JavaBytecodeOptimiser
+import MAlice.CodeGen.JavaBytecodeUnitialisedReferences
+import MAlice.CodeGen.JavaBytecodeStack
+import MAlice.CodeGen.JavaBytecodeLocals
+import MAlice.CodeGen.JavaBytecodeUtil
+import MAlice.CodeGen.JavaBytecodeMissingReturns
+import MAlice.CodeGen.JavaBytecodeThrowable
+import MAlice.CodeGen.JavaBytecodeJunkLabels
+import MAlice.CodeGen.JavaBytecodeSetupInput
+import MAlice.CodeGen.JavaBytecodeOperators
 import MAlice.Language.AST
 import MAlice.Language.Types
 import MAlice.SemanticAnalysis.ExprChecker
@@ -20,26 +21,30 @@ translateProgram (Program (DeclList decls))
   = opt(
     [Class thisClass] ++
     [SuperClass]      ++
-    moveFieldsToTop(
-      mergeConstructors(
-        [MainMethod]      ++
-        [Constructor []]  ++
-        decls'''''''
+    setLocalVarNums(
+      setupMethodStacks (
+        convertConstructor (
+          moveFieldsToTop(
+            mergeConstructors(
+              [MainMethod]      ++
+              [Constructor []]  ++
+              decls''''''
+            )
+          )
+        )
       )
     )
     )
-      where
-        (decls', varTable, methTable, labelTable)
-                    = translateGlobalDecls decls [] [] []
-        junkLabels  = getJunkLabels decls'
-        decls''     = removeJunkLabels decls' junkLabels
-        decls'''    = setupInputIfRequired decls''
-	decls''''   = setupMissingReturns decls'''
-	decls'''''  = setupThrowableIfRequired decls''''
-	(decls'''''', labelTable')
-	            = setupUnitialisedReferences decls'''' labelTable
-	decls'''''''
-	            = setupMethodStacks decls''''''
+    where
+      (decls', varTable, methTable, labelTable)
+                  = translateGlobalDecls decls [] [] []
+      junkLabels  = getJunkLabels decls'
+      decls''     = removeJunkLabels decls' junkLabels
+      decls'''    = setupInputIfRequired decls''
+      decls''''   = setupMissingReturns decls'''
+      decls'''''  = setupThrowableIfRequired decls''''
+      (decls'''''', labelTable')
+	          = setupUnitialisedReferences decls'''' labelTable
 
 translateGlobalDecls :: [Decl] -> VarTable -> MethTable -> LabelTable -> (JProgram, VarTable, MethTable, LabelTable)
 translateGlobalDecls [] varTable methTable labelTable
@@ -437,25 +442,32 @@ translateEntryAssign (Local ident loc arr) varTable t'
 
 translateLocalRefEntry :: VarTableEntry -> VarTable -> Type -> JProgram
 translateLocalRefEntry (Local ident loc t) varTable Number
-  = [IStore num] ++
-    [ALoad loc] ++
-    [New "java/lang/Integer"] ++
-    [Dup] ++
-    [ILoad num] ++
+  = [IStore num]                                       ++
+    [ALoad loc]                                        ++
+    [New "java/lang/Integer"]                          ++
+    [Dup]                                              ++
+    [ILoad num]                                        ++
     [Invokespecial "java/lang/Integer/<init>" "I" "V"] ++
     [Invokevirtual "java/util/concurrent/atomic/AtomicReference.set" "Ljava/lang/Object;" "V"]
       where
         num = getNewLocalVar varTable 1
 translateLocalRefEntry (Local ident loc t) varTable Letter
-  = [IStore num] ++
-    [ALoad loc] ++
-    [New "java/lang/Integer"] ++
-    [Dup] ++
-    [ILoad num] ++
+  = [IStore num]                                       ++
+    [ALoad loc]                                        ++
+    [New "java/lang/Integer"]                          ++
+    [Dup]                                              ++
+    [ILoad num]                                        ++
     [Invokespecial "java/lang/Integer/<init>" "I" "V"] ++
     [Invokevirtual "java/util/concurrent/atomic/AtomicReference.set" "Ljava/lang/Object;" "V"]
       where
         num = getNewLocalVar varTable 1
+translateLocalRefEntry (Local ident loc t) varTable Sentence
+  = [ALoad loc]  ++
+    [Swap]       ++
+    [Invokevirtual "java/util/concurrent/atomic/AtomicReference.set" "Ljava/lang/Object;" "V"]
+      where
+        num = getNewLocalVar varTable 1
+
 
 standardGlobal :: VarTableEntry -> JProgram
 standardGlobal (Global ident t)
