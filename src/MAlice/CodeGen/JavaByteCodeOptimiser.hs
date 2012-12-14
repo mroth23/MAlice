@@ -6,8 +6,16 @@ opt :: JProgram -> JProgram
 opt program
   = program''
     where 
-      program'  = optimise program
+      program'  = optimiseOverAndOver program
       program'' = setLocalVarNums program'
+
+optimiseOverAndOver :: JProgram -> JProgram
+optimiseOverAndOver program =
+  if optProgram == program
+  then program
+  else optimiseOverAndOver optProgram
+  where
+    optProgram = optimise program
 
 -- Optimise bytecode instructions.
 optimise :: JProgram -> JProgram
@@ -83,7 +91,7 @@ optimise ((ALoad_3):(ALoad_3):rest)
   = (ALoad_3):(Dup):(optimise rest)
 -- Optimise store then load.
 optimise ((IStore num1):(ILoad num2):rest)
-  = (Dup):(IStore num1):(optimise rest)
+  | num1 == num2 = (Dup):(IStore num1):(optimise rest)
 optimise ((IStore_1):(ILoad_1):rest)
   = (Dup):(IStore_1):(optimise rest)
 optimise ((IStore_2):(ILoad_2):rest)
@@ -106,7 +114,7 @@ setLocalVarNums ((Func label params return numParams):rest)
   = (Func label params return numParams):(LocalsLimit num):
     (setLocalVarNums rest)
       where
-        num = 1 + (max numParams (getNumOfLocalVars rest))
+	num = 1 + (max numParams (getNumOfLocalVars rest))
 setLocalVarNums (instr:rest)
   = instr:(setLocalVarNums rest)
 

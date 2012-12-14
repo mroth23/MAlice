@@ -2,12 +2,18 @@ module MAlice.CodeGen.JavaByteCode where
 
 import MAlice.CodeGen.JavaByteCodeInstr
 import MAlice.CodeGen.JavaByteCodeOptimiser
+import MAlice.CodeGen.JavaByteCodeUnitialisedReferences
+import MAlice.CodeGen.JavaByteCodeStackCalculator
+import MAlice.CodeGen.JavaByteCodeUtil
+import MAlice.CodeGen.JavaByteCodeMissingReturns
+import MAlice.CodeGen.JavaByteCodeThrowable
+import MAlice.CodeGen.JavaByteCodeJunkLabels
+import MAlice.CodeGen.JavaByteCodeSetupInput
+import MAlice.CodeGen.JavaByteCodeOperators
 import MAlice.Language.AST
 import MAlice.Language.Types
 import MAlice.SemanticAnalysis.ExprChecker
 import Data.Char
-
-thisClass = "Myclass"
 
 translateProgram :: Program -> JProgram
 translateProgram (Program (DeclList decls))
@@ -18,18 +24,22 @@ translateProgram (Program (DeclList decls))
       mergeConstructors(
         [MainMethod]      ++
         [Constructor []]  ++
-        decls'''''
+        decls'''''''
       )
     )
     )
       where
         (decls', varTable, methTable, labelTable)
-                   = translateGlobalDecls decls [] [] []
-        junkLabels = getJunkLabels decls'
-        decls''    = removeJunkLabels decls' junkLabels
-        decls'''   = setupInputIfRequired decls''
-	decls''''  = setupMissingReturns decls'''
-	decls''''' = setupThrowableIfRequired decls''''
+                    = translateGlobalDecls decls [] [] []
+        junkLabels  = getJunkLabels decls'
+        decls''     = removeJunkLabels decls' junkLabels
+        decls'''    = setupInputIfRequired decls''
+	decls''''   = setupMissingReturns decls'''
+	decls'''''  = setupThrowableIfRequired decls''''
+	(decls'''''', labelTable')
+	            = setupUnitialisedReferences decls'''' labelTable
+	decls'''''''
+	            = setupMethodStacks decls''''''
 
 translateGlobalDecls :: [Decl] -> VarTable -> MethTable -> LabelTable -> (JProgram, VarTable, MethTable, LabelTable)
 translateGlobalDecls [] varTable methTable labelTable
@@ -128,10 +138,7 @@ moveParamsToLocals (param:rest) varTable
       (rest', varTable'') = moveParamsToLocals rest varTable'  -}
 
 getNumParams :: [FormalParam] -> Int
-getNumParams []
-  = 0
-getNumParams (param:rest)
-  = (getNumParams rest) + 1
+getNumParams fp = length fp
 
 moveParamsToLocals :: [FormalParam] -> VarTable -> Int -> VarTable
 moveParamsToLocals [] varTable num
@@ -220,7 +227,7 @@ translateStmts (stmt:rest) varTable methTable labelTable
 
 translateStmt :: Stmt -> VarTable -> MethTable -> LabelTable -> (JProgram, VarTable, MethTable, LabelTable)
 translateStmt (SBody body) varTable methTable labelTable
-  = (body', varTable, methTable, labelTable)
+  = (body', varTable, methTable, labelTable')
      where
        (body', labelTable') = translateBody body varTable methTable labelTable
 translateStmt SNull varTable methTable labelTable
@@ -408,8 +415,6 @@ translateClause (If expr (CSList stmts)) varTable methTable labelTable endLabel
 translateClause (Else (CSList stmts)) varTable methTable labelTable endLabel
   = translateStmts stmts varTable methTable labelTable
 
--- ********************************************************************** --
--- Add type to function for the expression for references.
 translateVarAssign :: String -> VarTable -> Type -> JProgram
 translateVarAssign ident varTable t
   = translateEntryAssign (lookupVarTableEntry ident varTable) varTable t
@@ -496,10 +501,10 @@ translateExpr (EBinOp op ex1 ex2) varTable methTable labelTable
 translateExpr (EUnOp op ex) varTable methTable labelTable
   = (exInstrs ++
     unInstrs,
-    labelTable'')
+    labelTable')
       where
         (exInstrs, labelTable')  = translateExpr ex varTable methTable labelTable
-        (unInstrs, labelTable'') = translateUnOp op labelTable'
+        unInstrs                 = translateUnOp op
 translateExpr (EId (Ref Number) ident) varTable methTable labelTable
   = ((translateVariable (lookupVarTableEntry ident varTable) Number)                          ++
     [Invokevirtual "java/util/concurrent/atomic/AtomicReference.get" "" "Ljava/lang/Object;"] ++
@@ -659,77 +664,10 @@ translateVariable (Local ident num "Ljava/util/concurrent/atomic/AtomicReference
 translateVariable (Local ident num t) t'
   = [ALoad num]
 
-translateBinOp :: String -> LabelTable -> (JProgram, LabelTable)
-translateBinOp "+" labelTable  = ([IAdd], labelTable)
-translateBinOp "-" labelTable  = ([ISub], labelTable)
-translateBinOp "*" labelTable  = ([IMul], labelTable)
-translateBinOp "/" labelTable  = ([IDiv], labelTable)
-translateBinOp "%" labelTable  = ([IRem], labelTable)
-translateBinOp "|" labelTable  = ([IOr], labelTable)
-translateBinOp "^" labelTable  = ([IXor], labelTable)
-translateBinOp "&" labelTable  = ([IAnd], labelTable)
-translateBinOp "||" labelTable = ([IOr], labelTable)
-translateBinOp "&&" labelTable = ([IAnd], labelTable)
-translateBinOp "==" labelTable
-  = ([If_icmpeq label]   ++
-    booleanCode,
-    labelTable')
-      where
-        (booleanCode, label, labelTable') = setBooleanCode labelTable
-translateBinOp "!=" labelTable
-  = ([If_icmpne label] ++
-    booleanCode,
-    labelTable')
-      where
-        (booleanCode, label, labelTable') = setBooleanCode labelTable
-translateBinOp ">" labelTable
-  = ([If_icmpgt label] ++
-    booleanCode,
-    labelTable')
-      where
-        (booleanCode, label, labelTable') = setBooleanCode labelTable
-translateBinOp "<" labelTable
-  = ([If_icmplt label] ++
-    booleanCode,
-    labelTable')
-      where
-        (booleanCode, label, labelTable') = setBooleanCode labelTable
-translateBinOp ">=" labelTable
-  = ([If_icmpge label] ++
-    booleanCode,
-    labelTable')
-      where
-        (booleanCode, label, labelTable') = setBooleanCode labelTable
-translateBinOp "<=" labelTable
-  = ([If_icmple label] ++
-     booleanCode,
-     labelTable')
-       where
-         (booleanCode, label, labelTable') = setBooleanCode labelTable
-
-setBooleanCode :: LabelTable -> (JProgram, Label, LabelTable)
-setBooleanCode labelTable
-  = ([Ldc (ConsI 0)] ++
-    [Goto label']   ++
-    [LLabel label]  ++
-    [Ldc (ConsI 1)] ++
-    [LLabel label'],
-    label, labelTable'')
-      where
-        (label, labelTable')   = generateNewLabel labelTable
-        (label', labelTable'') = generateNewLabel labelTable'
-
--- After testing, if this works, can remove the LabelTable part.
-translateUnOp :: String -> LabelTable -> (JProgram, LabelTable)
-translateUnOp "-" labelTable = ([INeg], labelTable)
-translateUnOp "+" labelTable = ([], labelTable)
-translateUnOp "~" labelTable = ([INeg], labelTable)
-translateUnOp "!" labelTable = ([(Ldc (ConsI 1)), (IXor)], labelTable)
-
 translateForParamString :: Type -> String
 translateForParamString Number      = "I"
 translateForParamString Letter      = "I"
-translateForParamString Sentence    = "L/java/lang/String;"
+translateForParamString Sentence    = "Ljava/lang/String;"
 translateForParamString (RefType t) = "[" ++ translateForParamString t
 translateForParamString (Ref t)     = "Ljava/util/concurrent/atomic/AtomicReference;"
 
@@ -754,48 +692,6 @@ getScanMeth Number   = "nextInt"
 getScanMeth Letter   = "nextLine"
 getScanMeth Sentence = "nextLine"
 
--- Because we can only input strings, we take the 0th char from that string.
-inputCharHandling :: Type -> JProgram
-inputCharHandling Letter
-  = [Ldc (ConsI 0)] ++
-    [Invokevirtual "java/lang/String/sharAt" "I" "C"]
-inputCharHandling _
-  = []
--- Internally chars are actually stored as ints, so when printing we must conver them.
-printCharHandling :: Type -> JProgram
-printCharHandling Letter
-  = [I2c]
-printCharHandling _
-  = []
-
-type VarTable = [VarTableEntry]
-
-data VarTableEntry
-  --       Ident  Type           Ident  Loc Type
-  = Global String String | Local String Int String
-    deriving (Show, Eq)
-lookupVarTableEntry :: String -> VarTable -> VarTableEntry
--- This should never be called.
-lookupVarTableEntry str []
-  = (Local str 99999 "I")
-lookupVarTableEntry str ((Global ident t):rest)
-  | str == ident = (Global ident t)
-lookupVarTableEntry str ((Local ident int t):rest)
-  | str == ident = (Local ident int t)
-lookupVarTableEntry str (entry:rest)
-  = lookupVarTableEntry str rest
-
-type MethTable = [MethTableEntry]
-
-data MethTableEntry
-    --    Ident  Param  Return
-  = Entry String String String
-
-lookupMethTableEntry :: String -> MethTable -> MethTableEntry
-lookupMethTableEntry str ((Entry ident param ret):rest)
-  | str == ident = (Entry ident param ret)
-  | otherwise    = lookupMethTableEntry str rest
-
 makeFormalParamTypeString :: [FormalParam] -> String
 makeFormalParamTypeString []
   = ""
@@ -806,205 +702,3 @@ makeFormalParamTypeString ((Param t ident):rest)
 makeReturnString :: Type -> String
 makeReturnString t
   = translateToJType t
-
-getNewLocalVar :: VarTable -> Int -> Int
-getNewLocalVar table num
-  | tryLocalVar table num = num
-  | otherwise             = getNewLocalVar table (num+1)
-tryLocalVar :: VarTable -> Int -> Bool
-tryLocalVar [] num
-  = True
-tryLocalVar ((Local ident int t):rest) num
-  | num == int = False
-tryLocalVar (_:rest) num
-  = tryLocalVar rest num
-
-showJavaProgram :: JProgram -> IO ()
-showJavaProgram program
-  = putStr (getJavaProgramString program)
-getJavaProgramString :: JProgram -> String
-getJavaProgramString []
-  = ""
-getJavaProgramString ((Constructor program):rest)
-  = ".method public <init>()V\n"  ++
-    " .limit stack 100\n"                             ++
-    " .limit locals 100\n"                            ++
-    "aload_0\n"                                       ++
-    "dup\n"                                           ++
-    "invokespecial java/lang/Object/<init>()V\n"      ++
-    constructorCode                                    ++
-    "invokevirtual " ++ thisClass ++ "/hatta()V\n"    ++
-    "return\n"                                        ++
-    ".end method\n"                                   ++
-    rest'
-      where
-        constructorCode = getJavaProgramString program
-        rest'           = getJavaProgramString rest
-getJavaProgramString (instr:rest)
-  = (show instr) ++ (getJavaProgramString rest)
-
-moveFieldsToTop :: JProgram -> JProgram
-moveFieldsToTop program
-  = fields ++ rest
-    where
-      (fields, rest) = moveFieldsToTop' program
-moveFieldsToTop' :: JProgram -> (JProgram, JProgram)
-moveFieldsToTop' []
-  = ([], [])
-moveFieldsToTop' ((Field label t):rest)
-  = (((Field label t):fields), rest')
-    where
-      (fields, rest') = moveFieldsToTop' rest
-moveFieldsToTop' (instr:rest)
-  = (fields, instr:rest')
-    where
-      (fields, rest') = moveFieldsToTop' rest
-
-mergeConstructors :: JProgram -> JProgram
-mergeConstructors program
-  = [Constructor (constructors)] ++ rest
-    where
-      (constructors, rest) = mergeConstructors' program
-mergeConstructors' :: JProgram -> (JProgram, JProgram)
-mergeConstructors' []
-  = ([], [])
-mergeConstructors' ((Constructor program):rest)
-  = ((program++cons), rest')
-    where
-      (cons, rest') = mergeConstructors' rest
-mergeConstructors' (instr:rest)
-  = (cons, instr:rest')
-    where
-      (cons, rest') = mergeConstructors' rest
-
-type LabelTable = [String]
-generateNewLabel :: LabelTable -> (String, LabelTable)
-generateNewLabel labelTable
-  = generateNewLabel' labelTable 0
-generateNewLabel' :: LabelTable -> Int -> (String, LabelTable)
-generateNewLabel' labelTable int
-  | elem label labelTable           = generateNewLabel' labelTable (int+1)
-  | otherwise                       = (label, label:labelTable)
-    where
-      label = "_label" ++ show int
-
-getJunkLabels :: JProgram -> LabelTable
-getJunkLabels []
-  = []
-getJunkLabels ((LLabel label):(Endmethod):rest)
-  = (label):(getJunkLabels rest)
-getJunkLabels (somethingElse:rest)
-  = getJunkLabels rest
-
-removeJunkLabels :: JProgram -> LabelTable -> JProgram
-removeJunkLabels [] labelTable
-  = []
-removeJunkLabels ((LLabel label):rest) labelTable
-  | elem label labelTable = removeJunkLabels rest labelTable
-  | otherwise             = (LLabel label):(removeJunkLabels rest labelTable)
-removeJunkLabels ((Goto label):rest) labelTable
-  | elem label labelTable = removeJunkLabels rest labelTable
-  | otherwise             = (Goto label):(removeJunkLabels rest labelTable)
-removeJunkLabels (somethingElse:rest) labelTable
-  = (somethingElse):(removeJunkLabels rest labelTable)
-
--- JVM won't let you get to end of function with correct return.
-setupMissingReturns :: JProgram -> JProgram
-setupMissingReturns []
-  = []
-setupMissingReturns ((Func label params return num):rest)
-  = [Func label params return num]   ++
-    setupMissingReturn (body) return ++
-    setupMissingReturns rest'
-      where
-        (body, rest') = splitFunctionFromProgram rest
-setupMissingReturns (instr:rest)
-  = (instr):(setupMissingReturns rest)
-
-setupMissingReturn :: JProgram -> String -> JProgram
-setupMissingReturn [] _
-  = []
-setupMissingReturn (instr:[Endmethod]) str
-  | str == "I" && instr /= (IReturn)
-      = [instr]                     ++
-        [ALoad_0]                   ++
-        [Invokevirtual call "" "V"] ++
-	[IConst_m1]                 ++
-	[IReturn]                   ++
-	[Endmethod]
-  | str == "C" && instr /= (IReturn)
-      = [instr]                     ++
-        [ALoad_0]                   ++
-        [Invokevirtual call "" "V"] ++
-	[IConst_m1]                 ++
-	[IReturn]                   ++
-	[Endmethod]
-  | str == "V" && instr /= (Return)
-      = [instr]  ++
-        [Return] ++
-	[Endmethod]
-  | str /= "V" && str /= "I" && str /= "C" && instr /= (AReturn)
-      = [instr]                     ++
-        [ALoad_0]                   ++
-	[Invokevirtual call "" "V"] ++
-	[AConst_null]               ++
-	[AReturn]                   ++
-	[Endmethod]
-  | otherwise = instr:[Endmethod]
-        where
-	  call = (thisClass++"/"++"_throwConditionError")
-setupMissingReturn [Endmethod] _
-  = [Endmethod]
-setupMissingReturn (instr:rest) str
-  = (instr):(setupMissingReturn rest str)
-
-splitFunctionFromProgram :: JProgram -> (JProgram, JProgram)
-splitFunctionFromProgram []
-  = ([], [])
-splitFunctionFromProgram ((Endmethod):rest)
-  = ([Endmethod], rest)
-splitFunctionFromProgram (instr:rest)
-  = (instr:body, rest')
-      where
-        (body, rest') = splitFunctionFromProgram rest
-
-setupThrowableIfRequired :: JProgram -> JProgram
-setupThrowableIfRequired program
-  | usesThrowable program  = program++[ThrowConditionError]
-  | otherwise              = program
-
-usesThrowable :: JProgram -> Bool
-usesThrowable []
-  = False
-usesThrowable ((Invokevirtual call "" "V"):_)
-  = True
-    where
-      call = (thisClass++"/"++"_throwConditionError")
-usesThrowable (_:rest)
-  = usesThrowable rest
-
-usesInput :: JProgram -> Bool
-usesInput []
-  = False
-usesInput ((Getfield meth "Ljava/util/Scanner;"):_)
-  = True
-    where
-      meth = thisClass++"/_scanner"
-usesInput (_:rest)
-  = usesInput rest
-
-inputConstructor :: JProgram
-inputConstructor
-  = [Field "_scanner" "Ljava/util/Scanner;"] ++
-    [Constructor
-     ([ALoad_0]                                                             ++
-     [New "java/util/Scanner"]                                              ++
-     [Dup]                                                                  ++
-     [Getstatic "java/lang/System.in" "Ljava/io/InputStream;"]              ++
-     [Invokespecial "java/util/Scanner/<init>" "Ljava/io/InputStream;" "V"] ++
-     [Putfield (thisClass++"/_scanner") "Ljava/util/Scanner;"])]
-
-setupInputIfRequired :: JProgram -> JProgram
-setupInputIfRequired program
-  | usesInput program = inputConstructor ++ program
-  | otherwise         = program

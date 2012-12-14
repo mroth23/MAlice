@@ -43,7 +43,8 @@ executable compile
     FlexibleInstances,
     FunctionalDependencies,
     MultiParamTypeClasses,
-    Rank2Types
+    Rank2Types,
+    BangPatterns
 
   build-depends:
     base             == 4.5.*,
