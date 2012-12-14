@@ -5,8 +5,6 @@ import MAlice.Language.Types
 import Data.IORef
 import System.IO.Unsafe
 
-thisClass :: String
-thisClass = "Myclass"
 
 -- Given code will extract the function code and return you rest too.
 splitFunctionFromProgram :: JProgram -> (JProgram, JProgram)
@@ -91,7 +89,7 @@ getJavaProgramString ((Constructor program):rest)
     "dup\n"                                           ++
     "invokespecial java/lang/Object/<init>()V\n"      ++
     constructorCode                                    ++
-    "invokevirtual " ++ thisClass ++ "/hatta()V\n"    ++
+    "invokevirtual " ++ getClassName ++ "/hatta()V\n"    ++
     "return\n"                                        ++
     ".end method\n"                                   ++
     rest'
@@ -184,9 +182,10 @@ convertConstructor' program
     [Return]                                         ++
     [Endmethod]
       where
-        hatta = thisClass++"/"++"hatta"
+        hatta = getClassName++"/"++"hatta"
 
 className :: IORef String
+{-# NOINLINEclassName #-}
 className = unsafePerformIO $ newIORef "..........."
 
 setClassName str = unsafePerformIO $ writeIORef className str

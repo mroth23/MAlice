@@ -9,7 +9,7 @@ usesInput []
 usesInput ((Getfield meth "Ljava/util/Scanner;"):_)
   = True
     where
-      meth = thisClass++"/_scanner"
+      meth = getClassName++"/_scanner"
 usesInput (_:rest)
   = usesInput rest
 
@@ -22,7 +22,7 @@ inputConstructor
      [Dup]                                                                  ++
      [Getstatic "java/lang/System.in" "Ljava/io/InputStream;"]              ++
      [Invokespecial "java/util/Scanner/<init>" "Ljava/io/InputStream;" "V"] ++
-     [Putfield (thisClass++"/_scanner") "Ljava/util/Scanner;"])]
+     [Putfield (getClassName++"/_scanner") "Ljava/util/Scanner;"])]
 
 setupInputIfRequired :: JProgram -> JProgram
 setupInputIfRequired program

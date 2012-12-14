@@ -47,7 +47,7 @@ setupMissingReturn (instr:[Endmethod]) str
 	[Endmethod]
   | otherwise = instr:[Endmethod]
         where
-	  call = (thisClass++"/"++"_throwConditionError")
+	  call = (getClassName++"/"++"_throwConditionError")
 setupMissingReturn [Endmethod] _
   = [Endmethod]
 setupMissingReturn (instr:rest) str

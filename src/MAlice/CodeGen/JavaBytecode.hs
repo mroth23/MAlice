@@ -79,7 +79,7 @@ translateGlobalDecl (VAssignDecl (Sentence) ident expr) varTable methTable label
        [Dup]                                                              ++
        exprInstrs                                                          ++
        [Invokespecial "java/lang/String/<init>" "Ljava/lang/String;" "V"] ++
-       [Putfield (thisClass++"/"++ident) t'])
+       [Putfield (getClassName++"/"++ident) t'])
       )],
      (Global ident t'):varTable, methTable, labelTable')
        where
@@ -90,7 +90,7 @@ translateGlobalDecl (VAssignDecl t ident expr) varTable methTable labelTable
      [(Constructor
        ([ALoad_0]                              ++
        exprIntrs                               ++
-       [Putfield (thisClass++"/"++ident) t'])
+       [Putfield (getClassName++"/"++ident) t'])
       )],
      (Global ident t'):varTable, methTable, labelTable')
        where
@@ -102,7 +102,7 @@ translateGlobalDecl (VArrayDecl t ident expr) varTable methTable labelTable
        ([ALoad_0]                              ++
        exprInstrs                              ++
        [Newarray t']                          ++
-       [Putfield (thisClass++"/"++ident) t''])
+       [Putfield (getClassName++"/"++ident) t''])
       )],
      (Global ident t''):varTable, methTable, labelTable')
     where
@@ -319,7 +319,7 @@ translateStmt (SPrint ex) varTable methTable labelTable
     charHandling              = printCharHandling t
 translateStmt (SInput (EId t ident)) varTable methTable labelTable
   = ([ALoad_0]                                                ++
-    [Getfield (thisClass++"/_scanner") "Ljava/util/Scanner;"] ++
+    [Getfield (getClassName++"/_scanner") "Ljava/util/Scanner;"] ++
     [Invokevirtual ("java/util/Scanner/"++scanMeth) "" t']    ++
     charHandling                                              ++
     translateVarAssign ident varTable t,
@@ -332,7 +332,7 @@ translateStmt (SInput (EArrRef t id expr)) varTable methTable labelTable
   = (translateVariable (lookupVarTableEntry id varTable) t    ++
     indexInstrs                                               ++
     [ALoad_0]                                                 ++
-    [Getfield (thisClass++"/_scanner") "Ljava/util/Scanner;"] ++
+    [Getfield (getClassName++"/_scanner") "Ljava/util/Scanner;"] ++
     [Invokevirtual ("java/util/Scanner/"++scanMeth) "" t']    ++
     charHandling                                              ++
     translateVarAssign id varTable t,
@@ -352,7 +352,7 @@ translateStmt (SCall ident (APList exprs)) varTable methTable labelTable
         (Entry ident' paramString returnType)
           = lookupMethTableEntry ident methTable
         callString
-          = thisClass++"/"++ident'
+          = getClassName++"/"++ident'
         (paramsInstrs, labelTable', refTable)
           = translateParams exprs varTable methTable labelTable
 	restoreRefs
@@ -474,7 +474,7 @@ standardGlobal :: VarTableEntry -> JProgram
 standardGlobal (Global ident t)
   = [ALoad_0] ++
     [Swap]    ++
-    [(Putfield (thisClass++"/"++ident) t)]
+    [(Putfield (getClassName++"/"++ident) t)]
 arrayAccess :: VarTableEntry -> VarTable -> JProgram
 arrayAccess (Global ident t) varTable
   = {- [ALoad_0]                            ++
@@ -557,7 +557,7 @@ translateExpr (ECall t ident (APList exprs)) varTable methTable labelTable
       where
         (paramsInstrs, labelTable', refTable) = translateParams exprs varTable methTable labelTable
         (Entry ident' paramString returnType) = lookupMethTableEntry ident methTable
-        callString                            = thisClass++"/"++ident
+        callString                            = getClassName++"/"++ident
 	restoreRefs                           = translateRestoreRefs varTable refTable
 
 translateRestoreRefs :: VarTable -> [(String, Int)] -> JProgram
@@ -581,7 +581,7 @@ translateRestoreRefType (Global ident "I")
     [Swap]                                              ++
     [Putfield field "I"]
       where
-        field = thisClass++"/"++ident
+        field = getClassName++"/"++ident
 translateRestoreRefType (Global ident "C")
   = [Checkcast "java/lang/Integer"]                     ++
     [Invokevirtual "java/lang/Integer.intValue" "" "I"] ++
@@ -589,14 +589,14 @@ translateRestoreRefType (Global ident "C")
     [Swap]                                              ++
     [Putfield field "I"]
       where
-        field = thisClass++"/"++ident
+        field = getClassName++"/"++ident
 translateRestoreRefType (Global ident "Ljava/lang/String;")
   = [Checkcast "java/lang/String"] ++
     [ALoad_0]                      ++
     [Swap]                         ++
     [Putfield field t]
       where
-        field = thisClass++"/"++ident
+        field = getClassName++"/"++ident
 	t     = translateToJType Sentence
 translateRestoreRefType (Local ident num "I")
   = [Checkcast "java/lang/Integer"]                     ++
@@ -655,7 +655,7 @@ translateObjectWrapper Sentence ident varTable
 translateVariable :: VarTableEntry -> Type -> JProgram
 translateVariable (Global ident t) t'
   = [ALoad_0] ++
-    [Getfield (thisClass++"/"++ident) t]
+    [Getfield (getClassName++"/"++ident) t]
 translateVariable (Local ident num "I") t
   = [ILoad num]
 translateVariable (Local ident num "C") t

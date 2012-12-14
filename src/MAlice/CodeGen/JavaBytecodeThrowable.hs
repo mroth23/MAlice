@@ -14,6 +14,6 @@ usesThrowable []
 usesThrowable ((Invokevirtual call "" "V"):_)
   = True
     where
-      call = (thisClass++"/"++"_throwConditionError")
+      call = (getClassName++"/"++"_throwConditionError")
 usesThrowable (_:rest)
   = usesThrowable rest
