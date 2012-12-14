@@ -4,6 +4,11 @@ opened
   The looking-glass f ()
   opened
     x became "world",
+    x spoke,
+    x spoke,
+    x spoke, 
+    x spoke,
+    x spoke,
     x spoke.
   closed
   f().

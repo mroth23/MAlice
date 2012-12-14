@@ -2,6 +2,8 @@ module MAlice.CodeGen.JavaBytecodeUtil where
 
 import MAlice.CodeGen.JavaBytecodeInstr
 import MAlice.Language.Types
+import Data.IORef
+import System.IO.Unsafe
 
 thisClass :: String
 thisClass = "Myclass"
@@ -183,3 +185,10 @@ convertConstructor' program
     [Endmethod]
       where
         hatta = thisClass++"/"++"hatta"
+
+className :: IORef String
+className = unsafePerformIO $ newIORef "..........."
+
+setClassName str = unsafePerformIO $ writeIORef className str
+getClassName     = unsafePerformIO $ readIORef className
+

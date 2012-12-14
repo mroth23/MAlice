@@ -16,19 +16,19 @@ import MAlice.Language.Types
 import MAlice.SemanticAnalysis.ExprChecker
 import Data.Char
 
-translateProgram :: Program -> JProgram
-translateProgram (Program (DeclList decls))
+translateProgram :: Program -> String -> JProgram
+translateProgram (Program (DeclList decls)) thisClass
   = opt(
-    [Class thisClass] ++
+    [Class getClassName] ++
     [SuperClass]      ++
-    setLocalVarNums(
+    setLocalVarNums ( 
       setupMethodStacks (
         convertConstructor (
           moveFieldsToTop(
             mergeConstructors(
               [MainMethod]      ++
               [Constructor []]  ++
-              decls''''''
+              decls6
             )
           )
         )
@@ -36,15 +36,16 @@ translateProgram (Program (DeclList decls))
     )
     )
     where
-      (decls', varTable, methTable, labelTable)
-                  = translateGlobalDecls decls [] [] []
-      junkLabels  = getJunkLabels decls'
-      decls''     = removeJunkLabels decls' junkLabels
-      decls'''    = setupInputIfRequired decls''
-      decls''''   = setupMissingReturns decls'''
-      decls'''''  = setupThrowableIfRequired decls''''
-      (decls'''''', labelTable')
-	          = setupUnitialisedReferences decls'''' labelTable
+      ! dothis   = setClassName thisClass
+      (decls1, varTable, methTable, labelTable)
+                 = translateGlobalDecls decls [] [] []
+      junkLabels = getJunkLabels decls1
+      decls2     = removeJunkLabels decls1 junkLabels
+      decls3     = setupInputIfRequired decls2
+      decls4     = setupMissingReturns decls3
+      decls5     = setupThrowableIfRequired decls4
+      (decls6, labelTable')
+	         = setupUnitialisedReferences decls5 labelTable
 
 translateGlobalDecls :: [Decl] -> VarTable -> MethTable -> LabelTable -> (JProgram, VarTable, MethTable, LabelTable)
 translateGlobalDecls [] varTable methTable labelTable
