@@ -120,4 +120,4 @@ parseCode code name =
   MP.mparse code name
 
 bname :: String -> String
-bname s = reverse $ tail $ dropWhile (/='.') (reverse s)
+bname s = reverse $ tail $ takeWhile (/='/') $ dropWhile (/='.') (reverse s)
