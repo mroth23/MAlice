@@ -3,14 +3,15 @@ module Main where
 import System.Environment
 import System.Exit
 import System.Console.GetOpt
-import qualified MAlice.CodeGen.JavaByteCode    as J
-import qualified MAlice.Language.AST            as AST
-import qualified MAlice.Language.PrettyPrint    as PP
-import qualified MAlice.Parser.Parser           as MP
-import qualified MAlice.Parser.ParserState      as MP
-import qualified MAlice.Transformation.Optimise as T
-import qualified MAlice.Transformation.Rename   as T
-import qualified MAlice.Transformation.Desugar  as T
+import qualified MAlice.CodeGen.JavaByteCode     as J
+import qualified MAlice.CodeGen.JavaByteCodeUtil as J
+import qualified MAlice.Language.AST             as AST
+import qualified MAlice.Language.PrettyPrint     as PP
+import qualified MAlice.Parser.Parser            as MP
+import qualified MAlice.Parser.ParserState       as MP
+import qualified MAlice.Transformation.Optimise  as T
+import qualified MAlice.Transformation.Rename    as T
+import qualified MAlice.Transformation.Desugar   as T
 
 import qualified MAlice.Interactive.Shell as I
 

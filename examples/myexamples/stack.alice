@@ -1,0 +1,14 @@
+The room sum(number i) contained a number
+opened
+  perhaps (i == 0) so
+    Alice found 0.
+  or maybe (i > 0) so
+  Alice found i+sum(i-1).
+  because Alice was unsure which.
+  Alice found 0.
+closed
+
+The looking-glass hatta()
+opened
+  sum(5) spoke.
+closed

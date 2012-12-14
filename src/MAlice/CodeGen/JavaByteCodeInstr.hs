@@ -24,6 +24,7 @@ data JInstr =
   AStore_3                 |
   AAStore                  | -- Store reference to object on stack in array.
   AConst_null              |
+  Ifnull String            |
   ILoad_0                  |
   ILoad_1                  |
   ILoad_2                  |
@@ -121,8 +122,7 @@ instance Show JInstr where
        return ++ "\n"
   show (Func label params return _)
     = ".method public " ++ 
-       label ++ "(" ++ params ++ ")" ++ return ++ "\n" ++
-       ".limit stack 100\n"
+       label ++ "(" ++ params ++ ")" ++ return ++ "\n"
   show (ALoad num)         = "aload " ++ show num ++ "\n"
   show (ALoad_0)           = "aload_0\n"
   show (ALoad_1)           = "aload_1\n"
@@ -134,6 +134,7 @@ instance Show JInstr where
   show (AStore_2)          = "astore_2\n"
   show (AStore_3)          = "astore_3\n"
   show (AConst_null)       = "aconst_null\n"
+  show (Ifnull str)        = "ifnull " ++ str ++ "\n"
   show (ILoad_0)           = "iload_0\n"
   show (ILoad_1)           = "iload_1\n"
   show (ILoad_2)           = "iload_2\n"
@@ -192,6 +193,7 @@ instance Show JInstr where
   show (AReturn)           = "areturn\n" 
   show (Return)            = "return\n"
   show (LocalsLimit num)   = ".limit locals " ++ show num ++ "\n"
+  show (StackLimit num)    = ".limit stack " ++ show num ++ "\n"
   show (Checkcast str)     = "checkcast " ++ str ++ "\n"
   show (NewAtomicReference)= "new java/util/concurrent/atomic/AtomicReference\n"
   show (InvokeAtomicReference) = "invokespecial java/util/concurrent/atomic/AtomicReference/<init>(Ljava/lang/Object;)V\n"

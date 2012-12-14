@@ -1,27 +1,14 @@
-The room jamie () contained a number
-opened
-  Alice found 5.
-closed
-
 The looking-glass hatta () 
 opened
-  x was a number of 5,
-  z was a number of 8.
-  y was a letter of 'A'.
-  s was a sentence of "\nHello there.\n".
+  x was a number,
+  y was a number of 7,
   The looking-glass f ()
   opened
-    s spoke.
-    x became 12.
-    x+z spoke.
-    y spoke.
-    y became y+' '.
+    y became 2.
   closed
   f().
   x spoke.
   y spoke.
-  z spoke.
-  s spoke.
-  jamie() spoke.
+  "Done" spoke.
 closed
 
