@@ -4,6 +4,7 @@ import MAlice.Language.AST
 import MAlice.Transformation.Abstract
 import MAlice.Transformation.Annotate
 import MAlice.Transformation.Collect
+import MAlice.Transformation.Strip
 
 -- This module contains functions to "desugar" MAlice code. Most importantly,
 -- inner functions are lifted to global level. This is done in three passes:
@@ -15,8 +16,9 @@ import MAlice.Transformation.Collect
 
 desugarAST :: Program -> Program
 desugarAST =
-  collect . abstract . annotateIdentifiers
+  rstrip . collect . abstract . annotateIdentifiers
 
 --annotateIdentifiers :: Program -> ADecls
 --abstract :: ADecls -> Program
 --collect :: Program -> Program
+--rstrip :: Program -> Program
