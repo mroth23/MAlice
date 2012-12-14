@@ -1,14 +1,13 @@
 The looking-glass hatta () 
 opened
-  x was a number,
-  y was a number of 7,
+  x was a sentence of "hello",
   The looking-glass f ()
   opened
-    y became 2.
+    x became "world",
+    x spoke.
   closed
   f().
   x spoke.
-  y spoke.
   "Done" spoke.
 closed
 

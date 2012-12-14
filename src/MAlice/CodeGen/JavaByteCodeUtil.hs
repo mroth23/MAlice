@@ -161,3 +161,25 @@ setBooleanCode labelTable
       where
         (label, labelTable')   = generateNewLabel labelTable
         (label', labelTable'') = generateNewLabel labelTable'
+
+-- Swap out a constructor instruction for lower level code.
+convertConstructor :: JProgram -> JProgram
+convertConstructor []
+  = []
+convertConstructor ((Constructor program):rest)
+  = (convertConstructor' program) ++ rest
+convertConstructor (instr:rest)
+  = instr:(convertConstructor rest)
+
+convertConstructor' :: JProgram -> JProgram
+convertConstructor' program
+  = [Func  "<init>" "" "V" 0]                        ++
+    [ALoad_0]                                        ++
+    [Dup]                                            ++
+    [Invokespecial "java/lang/Object/<init>" "" "V"] ++
+    program                                          ++
+    [Invokevirtual hatta "" "V"]                     ++
+    [Return]                                         ++
+    [Endmethod]
+      where
+        hatta = thisClass++"/"++"hatta"
