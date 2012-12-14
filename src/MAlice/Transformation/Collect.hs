@@ -28,8 +28,8 @@ collectBody b = (b, [])
 collectSplit :: [Decl] -> ([Decl], [Decl]) -> ([Decl], [Decl])
 collectSplit [] acc = acc
 collectSplit (d@(FuncDecl _ _ _ _) : ds) (lifted, decls) =
-  collectSplit ds (d : lifted, decls)
+  collectSplit ds (lifted ++ [d], decls)
 collectSplit (d@(ProcDecl _ _ _) : ds) (lifted, decls) =
-  collectSplit ds (d : lifted, decls)
+  collectSplit ds (lifted ++ [d], decls)
 collectSplit (d : ds) (lifted, decls) =
-  collectSplit ds (lifted, d : decls)
+  collectSplit ds (lifted, decls ++ [d])
