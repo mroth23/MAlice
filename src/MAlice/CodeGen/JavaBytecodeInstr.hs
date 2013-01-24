@@ -15,28 +15,28 @@ data JInstr =
   Putfield Label String    | -- Puts a objectref in the field.
   Call Label String String | -- Call method with params and return type.
   Func Label String String Int | -- A function.
-  ALoad Int                | -- Load reference onto stack from local var int..
+  ALoad Int                | -- Load reference onto stack from local var int.
   ALoad_0                  | -- Load reference onto stack from local var 0.
   ALoad_1                  | -- Load object in local variable 1 onto stack.
-  ALoad_2                  |
-  ALoad_3                  |
+  ALoad_2                  | -- Load object in local variable 2 onto stack.
+  ALoad_3                  | -- Load object in local variable 3 onto stack
   AStore Int               | -- Store object reference from stack in local var.
-  AStore_0                 |
-  AStore_1                 |
-  AStore_2                 |
-  AStore_3                 |
+  AStore_0                 | -- Store object reference from stack in local var.
+  AStore_1                 | -- Store object reference from stack in local var.
+  AStore_2                 | -- Store object reference from stack in local var.
+  AStore_3                 | -- Store object reference from stack in local var.
   AAStore                  | -- Store reference to object on stack in array.
-  AConst_null              |
-  Ifnull String            |
-  ILoad_0                  |
-  ILoad_1                  |
-  ILoad_2                  |
-  ILoad_3                  |
-  ILoad Int                | -- Pushes value of local var. (Integer)
-  IStore Int               | -- Pops value into local var. (Integer)
-  IStore_1                 |
-  IStore_2                 |
-  IStore_3                 |
+  AConst_null              | -- Load null pointer onto stack.
+  Ifnull String            | -- Jump if null pointer.
+  ILoad_0                  | -- Load local 0 onto stack (Int).
+  ILoad_1                  | -- Load local 1 onto stack (Int).
+  ILoad_2                  | -- Load local 2 onto stack (Int).
+  ILoad_3                  | -- Load local 3 onto stack (Int).
+  ILoad Int                | -- Pushes value of local var. (Int).
+  IStore Int               | -- Pops value into local var. (Int).
+  IStore_1                 | -- Pops value into local var 1 (Int).
+  IStore_2                 | -- Pops value into local var 2 (Int). 
+  IStore_3                 | -- Pops value into local var 3 (Int).
   Ldc Constant             | -- Push constant.
   Dup                      | -- Word on top of stack duplicated.
   Pop                      | -- Pops top word off stack.
@@ -69,16 +69,17 @@ data JInstr =
   IXor                     | -- Xor two values on stack.
   IConst_0                 | -- Load int value 0 onto stack.
   IConst_1                 | -- Load int value 1 onto stack.
-  IConst_2                 |
-  IConst_3                 |
-  IConst_4                 |
-  IConst_5                 |
+  IConst_2                 | -- Load int value 2 onto stack.
+  IConst_3                 | -- Load int value 3 onto stack.
+  IConst_4                 | -- Load int value 4 onto stack.
+  IConst_5                 | -- Load int value 5 onto stack.
   IConst_m1                | -- Load int value -1 onto stack.
   I2c                      | -- Convert an int to a character.
-  New String               | -- Create object of type string and place ref on stack.
+  New String               | -- Create a new string.
   Newarray String          | -- Create a new array with elements as int on stack.
-  IALoad                   | -- Load an int from an array. Push array ref, then int index.
-  IAStore                  | -- Load an int into an array. Push array ref, then int index, then int.
+  ANewarray String         | -- Create a new object array.
+  IALoad                   | -- Load an int from an array.Push array ref,index.
+  IAStore                  | -- Load an int into an array.Push array ref,index,int.
   IInc Index Constant      | -- Increment a local var by a given constant.
   BIPush Int               | -- Push char onto stack
   Getstatic String String  | -- Get a static field value of a class.
@@ -90,12 +91,12 @@ data JInstr =
   IReturn                  | -- Return an integer from a function.
   AReturn                  | -- Return a reference from a function.
   Return                   | -- Return void from a method.
-  NewAtomicReference       |
-  InvokeAtomicReference    |
-  StackLimit Int           |
-  LocalsLimit Int          |
-  Checkcast String         |
-  ThrowConditionError
+  NewAtomicReference       | -- Create a new AtomicReference.
+  InvokeAtomicReference    | -- Invoke AtomicReference constructor.
+  StackLimit Int           | -- Set the stack size limit.
+  LocalsLimit Int          | -- Set the locals size.
+  Checkcast String         | -- Check object is cast to right type.
+  ThrowConditionError        -- Code for throwing condition return error.
     deriving Eq
 
 instance Show JInstr where
@@ -136,6 +137,7 @@ instance Show JInstr where
   show (AStore_1)          = "astore_1\n"
   show (AStore_2)          = "astore_2\n"
   show (AStore_3)          = "astore_3\n"
+  show (AAStore)           = "aastore\n"
   show (AConst_null)       = "aconst_null\n"
   show (Ifnull str)        = "ifnull " ++ str ++ "\n"
   show (ILoad_0)           = "iload_0\n"
@@ -187,6 +189,7 @@ instance Show JInstr where
   show (I2c)               = "i2c" ++ "\n"
   show (New str)           = "new " ++ str ++ "\n"
   show (Newarray str)      = "newarray " ++ str ++ "\n"
+  show (ANewarray str)     = "anewarray " ++ str ++ "\n"
   show (IALoad)            = "iaload\n"
   show (IAStore)           = "iastore\n"
   show (IInc index const)  = "iinc " ++ show index ++ " " ++ show const ++ "\n"
@@ -199,7 +202,8 @@ instance Show JInstr where
   show (StackLimit num)    = ".limit stack " ++ show num ++ "\n"
   show (Checkcast str)     = "checkcast " ++ str ++ "\n"
   show (NewAtomicReference)= "new java/util/concurrent/atomic/AtomicReference\n"
-  show (InvokeAtomicReference) = "invokespecial java/util/concurrent/atomic/AtomicReference/<init>(Ljava/lang/Object;)V\n"
+  show (InvokeAtomicReference) 
+    = "invokespecial java/util/concurrent/atomic/AtomicReference/<init>(Ljava/lang/Object;)V\n"
   show (Getstatic lib obj)
     = "getstatic " ++ lib ++ " " ++ obj ++ "\n"
   show (Invokevirtual label param ret)
@@ -215,14 +219,17 @@ instance Show JInstr where
       label ++ "(" ++ param ++ ")" ++
       ret ++ "\n"
   show (ThrowConditionError)
-    = show (Func "_throwConditionError" "" "V" 0)                               ++
-      ".limit locals 1\n"                                                       ++
-      show (Getstatic "java/lang/System/out" "Ljava/io/PrintStream;")           ++
-      show (Ldc (ConsS "No return matched in function."))                       ++
-      show (Invokevirtual "java/io/PrintStream/print" "Ljava/lang/String;" "V") ++
-      show (IConst_1)                                                           ++
-      show (Invokestatic "java/lang/System/exit" "I" "V")                       ++
-      show (Return)                                                             ++
+    = show (Func "_throwConditionError" "" "V" 0)            ++
+      ".limit locals 1\n"                                    ++
+      ".limit stack 2\n"                                     ++
+      show (Getstatic     "java/lang/System/out" 
+                          "Ljava/io/PrintStream;")           ++
+      show (Ldc (ConsS    "No return matched in function.")) ++
+      show (Invokevirtual "java/io/PrintStream/print" 
+                          "Ljava/lang/String;" "V")          ++
+      show (IConst_1)                                        ++
+      show (Invokestatic  "java/lang/System/exit" "I" "V")   ++
+      show (Return)                                          ++
       show (Endmethod)
 
 data Constant =

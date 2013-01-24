@@ -43,10 +43,10 @@
 \shortcut idx
 \color #008000
 \end_index
-\leftmargin 3cm
-\topmargin 3cm
-\rightmargin 3cm
-\bottommargin 3cm
+\leftmargin 2.8cm
+\topmargin 2.8cm
+\rightmargin 2.8cm
+\bottommargin 2.8cm
 \secnumdepth 3
 \tocdepth 3
 \paragraph_separation indent
@@ -161,8 +161,8 @@ industrial strength
 status collapsed
 
 \begin_layout Plain Layout
-Parsed, type-checked and optimised a 5.3k line MAlice program, with 10 levels
- of inner functions.
+Parsed, type-checked, optimised and generated code for a 5.3k line MAlice
+ program, with 10 levels of inner functions.
  GHC flags -O2, on a lab machine, time measured 0.22s.
 \end_layout
 
@@ -179,7 +179,7 @@ parsec
 include automatic generation of an LL expression parser through a specification
  of the precedences, associativities and expression data type in Haskell.
  It also has customisable parser error output, where messages can be attached
- to parser rules, which are output when parsing fails.
+ to parser rules, which are displayed when parsing fails.
  Overall, this made us decide that 
 \emph on
 parsec
@@ -195,16 +195,22 @@ alex,
 \emph default
 but felt that there isn't enough flexibility for keeping state and type-checking
  between the lexer and parser with that setup.
- On top of that, the version of 
+ Other, more modern parsing libraries like 
 \emph on
-alex (3.0.1) 
+trifecta
 \emph default
-installed on the lab computers has a bug with the 
-\emph on
-%monad
-\emph default
- wrapper we were using which made it impossible to generate the parser without
- locally installing an up-to-date version through cabal.
+ would introduce such an insane amout of dependencies
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Outside of haskell-platform, which is installed on the test machine.
+\end_layout
+
+\end_inset
+
+ that we decided the few benefits such as slightly nicer error output wouldn't
+ be worth having.
 \end_layout
 
 \begin_layout Subsection
@@ -219,57 +225,18 @@ Most of the semantic analysis in our compiler is done at the parsing stage.
  declared in the same scope.
  Next, they are added to the current symbol table together with some other
  information about them: Type, kind (variable, function, procedure), return
- type, and (if any) argument types.
- The 
-\emph on
-Maybe
-\emph default
- data type is used to indicate procedure return type.
+ type, and argument types (if any).
  On function definitions, after the function identifier has been inserted
  into the symbol table, a new scope is entered, i.e.
  a symbol table is added to the stack.
  In addition to type-checking of expressions and identifiers, every time
  a function is called, the list of arguments and return type are also checked.
- During parsing, the following errors and warnings can occur: 
-\end_layout
+\begin_inset Newline newline
+\end_inset
 
-\begin_layout Itemize
-Type error: an identifier or expression of the wrong type is used, e.g.
- in an assignment
-\end_layout
-
-\begin_layout Itemize
-Multiple declaration error: the same identifier is defined more than once
- in the same scope
-\end_layout
-
-\begin_layout Itemize
-Unknown identifier error: a reference to an unknown identifier is made
-\end_layout
-
-\begin_layout Itemize
-Invalid identifier kind error: an identifier is used in the wrong context,
- e.g.
- a function call on a variable
-\end_layout
-
-\begin_layout Itemize
-Invalid return error: return statement outside of a function definition
-\end_layout
-
-\begin_layout Itemize
-Function return path warning: a function does not return a value on all
- code paths
-\end_layout
-
-\begin_layout Itemize
-Empty function warning: a function body is empty
-\end_layout
-
-\begin_layout Standard
 There are some additional checks that occur after the parsing is completed.
- If the source file doesn't have the procedure 'hatta' defined, it has the
- wrong type signature, or is a function, an error is logged.
+ If the source file doesn't have the entry procedure 'hatta' defined, it
+ has the wrong type signature, or is a function, an error is logged.
  If the whole parsing process completes without errors, the constructed
  abstract syntax tree is returned from the parser.
  Otherwise, a string containing the error message(s) is returned.
@@ -288,10 +255,10 @@ As a next step, the abstract syntax tree is modified in several passes.
  This is necessary to facilitate code generation for our JVM backend, which
  doesn't support nested methods.
  It is done in three stages: first, the abstract syntax tree is annotated
- with information about free variables.
- This information is then used to modify every function call to include
- the free variables in that function as additional arguments (passed by
- reference), and every function definition is appended with the extra arguments.
+ with information about free variables in methods.
+ This information is then used to modify every method call to include the
+ free variables in that method as additional arguments (passed by reference),
+ and every method definition is appended with the extra arguments.
  Last, there is a collection pass that walks the abstract syntax tree and
  recursively lifts all inner functions out of their original position right
  in front of their 
@@ -307,13 +274,204 @@ parent
 \end_inset
 
 The last part is optimisation, which is mostly done at this stage.
- Expressions are reduced as far as possible, and dead code such as certain
- control structures and functions that are never entered or called are removed.
- Statements with no effects, such as 'x = x', are also removed.
+ Expressions are reduced as far as possible
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Optimisation for expressions: Transformation/Optimise.hs; Lambda lifting:
+ Transformation/Desugar.hs; Unreachable code analysis: Transformation/Strip.hs
+\end_layout
+
+\end_inset
+
+, and dead code such as certain control structures and functions that are
+ never entered or called are removed.
+ The optimised and transformed abstract syntax tree is then passed to the
+ code generator.
 \end_layout
 
 \begin_layout Subsection
 Code generation for the JVM
+\end_layout
+
+\begin_layout Standard
+Our code generator produces bytecode assembly that can be assembled by the
+ JVM assembler 
+\emph on
+Jasmin
+\emph default
+.
+ The JVM can be seen as a stack machine: There are no registers, you can
+ merely add and remove operands from the stack.
+ This environment automatically gives us a vast array of runtime checks
+ and messages, and an extensive library of classes we could tap into.
+ Producing code for this system also allows us to run the same code on any
+ machine that supports Java, i.e.
+ our code is not platform specific.
+\begin_inset Newline newline
+\end_inset
+
+The code generator explores the abstract syntax tree, recursively converting
+ it into instructions.
+ The instructions are then repeatedly passed over and optimisation is attempted.
+ Global variables are defined as fields in the bytecode and moved to the
+ top of the program.
+ In producing the bytecode, there are however some major obstacles in the
+ way.
+\begin_inset Newline newline
+\end_inset
+
+The first problem occurs with inner functions.
+ Unlike in assembly where there is complete access to the stack, in bytecode
+ functions do not have such access.
+ Each function has its own special stack to compute instructions and as
+ its own variable storage.
+ Each function may also only return one result.
+ So even though we use lambda lifting for inner functions, we still had
+ to find a way to allow access to read and modify the variables in the outer
+ scope.
+ This was achieved by using an AtomicReference object
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+As found in java.util.concurrent.atomic
+\end_layout
+
+\end_inset
+
+.
+ The AST uses a special type to indicate variables passed by reference,
+ so when a function is called with the reference type primitive types would
+ be wrapped into an object, to then create an AtomicReference object with
+ it as its constructor parameter.
+ This AtomicReference acts as a reference to the variable.
+ After the function call, the atomic reference must be unwrapped, the value
+ retrieved from the Object inside, and placed back into the original storage
+ location.
+\begin_inset Newline newline
+\end_inset
+
+Matters get even more complicated when uninitialised values have to be wrapped.
+ In Java, primitives have default values and objects are created as 
+\emph on
+null
+\emph default
+.
+ However in MAlice, variables can be uninitialised, which needs to be handled.
+ To avoid this issue, a basic check is performed to determine if there is
+ a chance the variable is unitialised and to give the AtomicReference a
+ null reference if required.
+ After the function call, it must then be checked if the object inside is
+ null, and if not the variable can be updated as required.
+ When a function is using an AtomicReference, it must retrieve the object
+ inside and unwrap it to get the value, then reverse the process when storing
+ a value.
+\begin_inset Newline newline
+\end_inset
+
+Because of the statically typed bytecode verifier all functions must end
+ with a correct return type.
+ Whether or not it is possible to reach the end of a function without a
+ return directly at the end, it will print an error and fail to execute.
+ While it is possible to make such code execute using the 
+\emph on
+-noverify
+\emph default
+ flag, this also disables the runtime error-checking system.
+ To counter this problem, we walk over the instructions and check for cases
+ where this could happen.
+ A call to a special function is added, and a valid return statement can
+ then be added to suppress the bytecode verifier errors.
+ This special function outputs an error that the function did not return
+ and exits the program.
+\begin_inset Newline newline
+\end_inset
+
+Global declarations of variables are packaged into a certain instruction
+ that specifies them to be put into a constructor.
+ All constructor instructions can then be merged together.
+ In the bytecode, there will then be a main method (as required by the class),
+ that calls the class constructor.
+ This constructor then in turn calls the hatta function.
+\begin_inset Newline newline
+\end_inset
+
+In all functions, the local stack and variable size must be defined.
+ We recurse through the bytecode instructions of each function and calculate
+ the maximum stack size at any point and the number of local variables required.
+ When calculating the stack size, all branching is explored as it would
+ be in the JVM.
+\begin_inset Newline newline
+\end_inset
+
+The last thing the code generator does is to attempt to optimise the list
+ of instructions.
+ The first part of the optimisation is printing strings.
+ IO is a very slow part of computation and so it is vital to optimise this.
+ In cases where two strings are printed, one after the other, we combine
+ the strings, effectively cutting the IO in half.
+\begin_inset Newline newline
+\end_inset
+
+One of the most important instructions for optimisation is the 'dup' instruction
+, which duplicates the top of the stack.
+ If the same value was loaded onto the stack twice, it could instead be
+ loaded once and then duplicated, which is much faster.
+ We check for all such duplicate loads and replace them.
+ During these passes, we also try to optimise printing again.
+ When there are two print commands in a row, instead of constantly loading
+ the System.out static class every time we try to print, these are swapped
+ with 'dup's.
+\begin_inset Newline newline
+\end_inset
+
+There is also an attempt to simplify conditional jumps, where binary values
+ are set after condition and then another conditional jump instruction is
+ requested, we try to merge the first conditional jump with the second to
+ only use one conditional jump.
+\begin_inset Newline newline
+\end_inset
+
+The JVM has many fast instructions for common tasks such as loading -1,
+ 0 or 1 onto the stack.
+ For example, if the 'ldc' instruction is ever used with an immediate value,
+ such as in 
+\emph on
+'ldc -1',
+\emph default
+ this would be changed to its faster alternative 
+\emph on
+'iconst_m1'
+\emph default
+.
+ This optimisation can also be performed on load and store instructions
+ for variables.
+\begin_inset Newline newline
+\end_inset
+
+Another issue that had to be dealt with was the JVM handling characters,
+ where pushing a character onto the stack converts it to an 
+\emph on
+int
+\emph default
+.
+ This makes some calculations easier, however directly printing this character
+ will by default print an int (the int value of the character).
+ The code generator must load, store and manipulate characters as integers,
+ and then if they are ever printed, request to print with the type character.
+\begin_inset Newline newline
+\end_inset
+
+One of the nice features of the JVM is its run-time system.
+ It automatically provides arithmetic checking and array bounds checking,
+ outputting understandable errors when required.
+ This is also true for stack overflows.
+ We only had to implement one part of the run-time system, which was when
+ a return might not reached in a function, and most other problems could
+ be solved through modifications in the abstract syntax tree and careful
+ instruction selection.
 \end_layout
 
 \begin_layout Section
@@ -329,7 +487,7 @@ status collapsed
 
 \begin_layout Plain Layout
 There is no use of IO outside of file handling and library dependencies
- (parsec)
+ (parsec), except in the interactive shell.
 \end_layout
 
 \end_inset
@@ -353,6 +511,8 @@ The optimisation stage is independent from code generation, so other backends
  Moreover, the abstract syntax tree format is annotated with some type informati
 on that is retained from parsing, to accommodate for the typing needs of
  different output languages.
+ This should make it relatively easy to generate other code from the front-end
+ compiler we already have.
 \begin_inset Newline newline
 \end_inset
 
@@ -362,6 +522,8 @@ Since the parser is hand-written and modular, it is easy to reuse single
  We have done so in the extension, our interactive MAlice shell, and written
  almost no additional code to parse user input, while generating the exact
  same data that is already used in the AST.
+ This also has the benefits of getting the exact same error message system
+ the parser has.
 \begin_inset Newline newline
 \end_inset
 
@@ -392,10 +554,116 @@ g Java bytecode.
  Other assembly languages seem to be much more widely used in compilers
  (LLVM), or have been used to write programs for decades (Intel assembly),
  and it would have been easier to get support for these.
+ While it is possible to perform more optimisations if the abstract syntax
+ tree is converted to another intermediate representation, we found it easiest
+ to generate code directly from the AST, since many of those optimisations
+ more specifically target certain architectures, and not stack machines
+ like the JVM
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+E.g.
+ tail call optimisation, register selection/liveness analysis
+\end_layout
+
+\end_inset
+
+.
+\begin_inset Newline newline
+\end_inset
+
+We found that we could have profited from more extensive use of some of
+ Haskell's more interesting features.
+ The expression evaluator in the extension would greatly benefit from typed
+ expressions (i.e.
+ GADTs), but it would have been too much work to rewrite all the other code
+ to change this.
 \end_layout
 
 \begin_layout Section
 Beyond the specification
+\end_layout
+
+\begin_layout Standard
+While we have added less important bits to the compiler, such as a boolean
+ data type that can be declared in MAlice 
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+dream: either 'truth' or 'lie'
+\end_layout
+
+\end_inset
+
+ and the possibility for global variables to be assigned function call results
+ at declaration, our most important extension is the MAlice interactive
+ shell.
+\begin_inset Newline newline
+\end_inset
+
+The idea is to provide the programmer with a tool that allows interactive
+ testing of MAlice code.
+ A source file can be loaded into the shell, and will be parsed and verified
+ as in the normal compiler.
+ However, no further optimisation is performed.
+\begin_inset Newline newline
+\end_inset
+
+A user can then type arbitrary code into the shell, which will be verified
+ by the type-checker and evaluated.
+ Any functions and procedures from the loaded source file are available
+ and can be called with arbitrary (valid) arguments.
+ It is also possible to declare new variables or methods.
+ All runtime state (i.e.
+ global and user-defined variables) can be modified by assignment statements,
+ reading values from user input, or any other statements that are supported
+ in MAlice.
+ Lastly, expressions can be evaluated to display their results or use them
+ in further computations.
+ The simulation of MAlice code is built on a stack of monads to provide
+ error handling, runtime state and IO to the MAlice program, in short, a
+ runtime environment is simulated.
+ The evaluation will halt on encountering any errors, and produce the expected
+ result otherwise.
+ Any MAlice program execution can be simulated by loading it into the shell,
+ and calling 
+\emph on
+hatta().
+
+\emph default
+ However, it is entirely possible to not follow this path and evaluate or
+ test any other functions as required.
+\begin_inset Newline newline
+\end_inset
+
+If any changes are made to the source file, it can be reloaded by typing
+ ':r', alternatively, a new file can be loaded with ':l'.
+ The interactive shell can be run with 
+\emph on
+./interactive /path/to/file.alice
+\emph default
+, and works very similar to ghci in how it is used.
+\begin_inset Newline newline
+\end_inset
+
+We think that it would have been interesting to implement some of the more
+ advanced optimisations, although many of them are of limited use for our
+ back-end.
+ As a possible further extension, it would be possible to write an LLVM
+ code generator that takes full advantage of the optimisation potential
+ for native code.
+ Although we haven't had time to implement these features, our compiler
+ architecture as a whole would provide the possibility to be extended in
+ this manner.
+ We believe however that we have implemented a very broad set of features
+ for the specific path we've taken, which covers most of the interesting
+ challenges compiler writers face.
+ While it is always possible to do further optimisations (as evidenced by
+ the fact that existing compilers have been improving for decades, and still
+ are), this isn't necessarily feasible for a small-scale project like our
+ MAlice compiler.
 \end_layout
 
 \end_body

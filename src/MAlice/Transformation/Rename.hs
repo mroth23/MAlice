@@ -9,10 +9,16 @@ import MAlice.Transformation.Types
 import MAlice.Language.AST as AST
 import qualified MAlice.Language.Types as MAlice
 
+-- This module gives each identifier it encounters a new, unique name.
+-- These names are generated based on rules defined in Types.hs, and
+-- usually contain some prefix and a unique number at the end. Top-level
+-- functions are not renamed, inner functions are though.
+
 renameIdentifiers :: AST.Program -> AST.Program
 renameIdentifiers (AST.Program ds) =
   Program $ runIdentity $ evalStateT (renameGlobalDecls ds) initState
 
+-- Structurally recursive bit
 renameFPs :: String -> FormalParams -> Transform FormalParams
 renameFPs f (FPList ps) =
   FPList `liftM` (mapM (renameFP f) ps)

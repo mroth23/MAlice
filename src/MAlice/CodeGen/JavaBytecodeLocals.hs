@@ -1,5 +1,14 @@
 module MAlice.CodeGen.JavaBytecodeLocals where
 
+-- Module that will set the local variable numbers
+-- in functions in the bytecode. Default values
+-- may be too low and will rarely be just as efficient
+-- as this function because we only use as many 
+-- as we need.
+-- We walk through the instructions and in function code
+-- record the max number of variable location used
+-- to determine how many we need.
+
 import MAlice.CodeGen.JavaBytecodeInstr
 
 setLocalVarNums :: JProgram -> JProgram

@@ -15,6 +15,7 @@ optimiseAST p =
   where
     optP = optimiseProgram p
 
+-- Structurally recurse so we get to optimise everything in the program.
 optimiseProgram :: Program -> Program
 optimiseProgram (Program ds) =
   Program (optimiseDecls ds)
@@ -47,18 +48,22 @@ optimiseCompoundStmt (CSList ss) =
 
 optimiseStmts :: [Stmt] -> [Maybe Stmt]
 optimiseStmts [] = []
+--Pointless assignments
 optimiseStmts ((SAssign a e):(SAssign b e2):ss)
   | e2 == a = (Just (SAssign b e)) : (optimiseStmts ss)
 optimiseStmts (s : ss) = (optimiseStmt s) : (optimiseStmts ss)
 
 optimiseStmt :: Stmt -> Maybe Stmt
+--Remove empty body blocks
 optimiseStmt (SBody b) =
   case b of
     EmptyBody -> Nothing
     body      -> Just $ SBody (optimiseBody b)
 optimiseStmt (SAssign e1 e2)
+-- More pointless assignments
   | e1 == e2   = Nothing
   | otherwise = Just $ SAssign (optimiseExpr e1) (optimiseExpr e2)
+-- Usually, we just optimise the actual expression inside statements
 optimiseStmt (SInc e) =
   Just $ SInc (optimiseExpr e)
 optimiseStmt (SDec e) =
@@ -72,10 +77,11 @@ optimiseStmt (SCall i a) =
 optimiseStmt (SLoop e l) =
   Just $ SLoop (optimiseExpr e) (optimiseCompoundStmt l)
 optimiseStmt (SIf c) =
+  -- Remove unreachable if clauses with catMaybes
   Just $ SIf $ catMaybes (map optimiseIfClause c)
 optimiseStmt s = Just s
 
-
+-- Optimise an if clause, if the condition is always false just cut it away
 optimiseIfClause :: IfClause -> Maybe IfClause
 optimiseIfClause (If e c) =
   case optimiseExpr e of
@@ -84,6 +90,7 @@ optimiseIfClause (If e c) =
 optimiseIfClause (Else c) =
   Just $ Else (optimiseCompoundStmt c)
 
+-- Operators that are optimised in constant folding
 intBinOps =
   [ ("+", (+))
   , ("-", (-))

@@ -1,5 +1,19 @@
 module MAlice.CodeGen.JavaBytecodeStack where
 
+-- Module that sets up all the function stacks
+-- in the program. This is because stack size
+-- is required and a default might be wrong
+-- and will near always be inefficient so 
+-- we work out what the stack sizes
+-- of functions should be.
+-- This code walks the list of instructions
+-- and keeps track of the size of the stack
+-- returning the max value of the stack at 
+-- any point.
+-- Jumps and conditions are in this walking
+-- so it follows all possible paths (and
+-- potentially some impossible ones too).
+
 import MAlice.CodeGen.JavaBytecodeInstr
 import MAlice.CodeGen.JavaBytecodeUtil
 

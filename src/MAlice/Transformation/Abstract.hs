@@ -13,15 +13,23 @@ type ArgTable = M.Map String FreeVars
 
 type Abs a = State ArgTable a
 
+-- Most of the functions in this module are just simple recursive bits that
+-- walk the AST and add free variables as arguments to any function calls as
+-- it finds them. Nothing really to explain here. Step 2/3 of the lambda lifter.
+
 -- putFunction = flip flip put . ((>>=) .) . flip flip get . M.insert
+-- puts a function definition into the state so it can be accessed whenever
+-- a call to that function needs to be modified
 putFunction :: String -> FreeVars -> Abs ()
 putFunction k e =
   M.insert k e `liftM` get >>= put
 
+-- get free vars from a function definition put by putFunction
 getFunction :: String -> Abs FreeVars
 getFunction k =
   (fromJust . M.lookup k) `liftM` get
 
+-- some helper functions to modify function parameters
 makeAPList :: FreeVars -> [Expr]
 makeAPList fs =
   map (\(i, t) -> EId (makeRefType t) i) fs
@@ -30,11 +38,13 @@ makeFPList :: FreeVars -> [FormalParam]
 makeFPList fs =
   map (\(i, t) -> Param (makeRefType t) i) fs
 
+-- We don't want to ref up types that are already passed by reference
 makeRefType :: Type -> Type
 makeRefType t@(Ref _) = t
 makeRefType t@(RefType _) = t
 makeRefType t = Ref t
 
+--Boring structural recursion
 abstract :: ADecls -> Program
 abstract ad = Program $ evalState (abstractDecls ad) M.empty
 

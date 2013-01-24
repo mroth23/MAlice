@@ -11,6 +11,7 @@ import MAlice.Interactive.Eval
 import MAlice.Parser.Parser
 import MAlice.Parser.ParserState
 
+-- Loads the file (if any) and runs the input loop
 main :: Maybe String -> IO ()
 main s = do
   putStrLn "MAlice interactive shell version M3.01, type :? for help"
@@ -31,6 +32,7 @@ evalGlobals_ = do
 rInitSt = (RuntimeState initState (Program $ DeclList []) [M.empty] "")
 
 --Executing this with evalStateT will yield an IO () action
+--Loops to take user input and evaluate it
 userInputLoop :: MEval ()
 userInputLoop = do
   liftIO $ putStr "\n>" >> hFlush stdout
@@ -49,13 +51,16 @@ userInputLoop = do
 resetErrors :: ParserState -> ParserState
 resetErrors st = st { errorList = SemanticErrors [] }
 
+-- Evaluates the different kinds of user input
 handleInput :: UserInput -> MExec ()
 handleInput (Command Quit) =
-  lift . liftIO . exitWith $ ExitSuccess
+  liftIO . exitWith $ ExitSuccess
 handleInput (Command Help) =
-  lift . liftIO . putStrLn $ helpMessage
-handleInput (Command ReloadFile) =
-  lift $ getCurrentFile >>= loadFile
+  liftIO . putStrLn $ helpMessage
+handleInput (Command ReloadFile) = do
+  cf <- lift $ getCurrentFile
+  lift $ loadFile cf
+  evalGlobals_
 handleInput (Command (LoadFile f)) = do
   lift $ loadFile f
   evalGlobals_
@@ -66,11 +71,13 @@ handleInput (EvalExpr e) =
 handleInput (EvalStmt c) =
   runCompoundStmt c >> return ()
 
+--Loads a file into "memory"
 loadFile :: String -> MEval ()
 loadFile f = do
   code <- safeRead f
   maybe (liftIO . putStrLn $ "Invalid file: " ++ f) (parseCode f) code
 
+--Does the actual parsing of the file, and clears runtime state
 parseCode :: String -> String -> MEval ()
 parseCode f code = do
   case mparse code f of
@@ -79,7 +86,8 @@ parseCode f code = do
       liftIO . putStrLn $ "Loaded " ++ f
       modifyState $ \st -> st { parserState = pst
                               , programAST  = ast
-                              , currentFile = f }
+                              , currentFile = f
+                              , memory = [M.empty] }
 
 
 -- If reading the file fails, return Nothing

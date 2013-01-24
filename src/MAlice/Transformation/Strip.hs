@@ -11,7 +11,10 @@ import MAlice.Language.AST
 --This module strips declared but unused methods and variables from the code.
 --Only used after everything has a unique name. Otherwise things may go horribly
 --wrong. Recursive functions that are otherwise unused will not be detected by
---this program.
+--this program. Statements that are regarded as having side effects, such as
+--array declarations (allocate memory) are not removed as this would break some
+--of the runtime test cases, specifically deleting an array dereference where
+--the value it's assigned to is never used.
 
 rstrip :: Program -> Program
 rstrip p =
@@ -95,10 +98,10 @@ annotateDecl :: Decl -> St ()
 annotateDecl (VarDecl _ var) = do
   putVar var False
 annotateDecl (VAssignDecl _ var e) = do
-  putVar var False
+  putVar var True
   annotateExpr e
 annotateDecl (VArrayDecl _ var e) = do
-  putVar var False
+  putVar var True
   annotateExpr e
 annotateDecl (FuncDecl f _ _ body) = do
   putVar f False

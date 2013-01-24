@@ -6,17 +6,19 @@ import Data.Bits
 import Data.Char
 import Data.Maybe
 import qualified Data.Vector as V
-import qualified Data.Vector.Mutable as V
+import qualified Data.Vector.Mutable as V hiding (length)
 import MAlice.Language.AST
 import MAlice.Language.Types
 import MAlice.Interactive.Types
 import MAlice.SemanticAnalysis.ExprChecker
 import System.IO
 
+-- Puts all global declarations into memory
 evalGlobals :: Program -> MExec ()
 evalGlobals (Program (DeclList ds)) =
   mapM_ runDecl ds
 
+-- Puts a Decl into memory
 runDecl :: Decl -> MExec ()
 runDecl (VarDecl t i) =
   lift $ newVar t i
@@ -31,6 +33,7 @@ runDecl fd@(FuncDecl i _ _ _) =
 runDecl pd@(ProcDecl i _ _) =
   lift $ newDecl i pd
 
+--Assign an Expr to an identifier
 assignExpr :: Type -> String -> Expr -> MExec ()
 assignExpr t i e =
   case t of
@@ -40,6 +43,7 @@ assignExpr t i e =
     Boolean  -> assignBolExpr i e
     t -> throwError $ "Eval.assignExpr: assignment to invalid type " ++ show t
 
+--Assign to an array element
 assignArrayExpr :: String -> Expr -> Expr -> MExec ()
 assignArrayExpr i ix e = do
   ix' <- evalIntExpr ix
@@ -47,10 +51,14 @@ assignArrayExpr i ix e = do
   case v of
     (ArrVar vect) -> do
       e' <- evalExpr e
-      let newV = V.modify (\ve -> V.write ve ix' e') vect
-      lift $ setVar i (ArrVar newV)
+      if ix' > (V.length vect) || ix' < 0
+        then throwError $ "Eval.assignArrayExpr: array index out of bounds, "
+             ++ show ix'
+        else do let newV = V.modify (\ve -> V.write ve ix' e') vect
+                lift $ setVar i (ArrVar newV)
     _ -> throwError "Eval.assignArrayExpr: not an array variable"
 
+--Assign an values of specific types: int, char, bool, etc.
 assignIntExpr :: String -> Expr -> MExec ()
 assignIntExpr i e = do
   val <- evalIntExpr e
@@ -71,9 +79,11 @@ assignBolExpr i e = do
   val <- evalBoolExpr e
   lift $ setVar i (BolVar $ Just val)
 
+-- Returns the haskell function for an operator
 hOp :: [(String, a)] -> String -> a
 hOp t s = fromJust (lookup s t)
 
+--Binary integer operations
 intBinOps =
   [ ("+", (+))
   , ("-", (-))
@@ -86,6 +96,7 @@ intBinOps =
 
 isIntBinOp = flip elem (map fst intBinOps)
 
+--Unary integer operations
 intUnOps =
   [ ("+", id)
   , ("-", negate)
@@ -93,6 +104,7 @@ intUnOps =
 
 isIntUnOp = flip elem (map fst intUnOps)
 
+--Relational operators
 intRelOps =
   [ ("<", (<))
   , (">", (>))
@@ -101,6 +113,7 @@ intRelOps =
 
 isIntRelOp = flip elem (map fst intRelOps)
 
+--Equational operators
 eqOps :: Eq a => [(String, a -> a -> Bool)]
 eqOps =
   [ ("==", (==))
@@ -109,18 +122,24 @@ eqOps =
 isEqOp :: String -> Bool
 isEqOp = flip elem ["==", "!="]
 
+--Logical operators
 boolOps =
   [ ("&&", (&&))
   , ("||", (||)) ]
 
 isBoolOp = flip elem (map fst boolOps)
 
+--Evaluator functions for the different types of expression:
+--int, string, char etc. All of these catch errors
+
 evalIntExpr :: Expr -> MExec Int
 evalIntExpr (EBinOp op e1 e2) | isIntBinOp op = do
   v1 <- evalIntExpr e1
   v2 <- evalIntExpr e2
   let f = hOp intBinOps op
-  return $ v1 `f` v2
+  if op == "/" && v2 == 0
+    then throwError $ "Eval.evalIntExpr: division by zero"
+    else return $ v1 `f` v2
 evalIntExpr (EUnOp op e) | isIntUnOp op = do
   v <- evalIntExpr e
   let f = hOp intUnOps op
@@ -136,7 +155,7 @@ evalIntExpr (EId Number s) = do
       throwError $ "Eval.evalIntExpr: invalid expression, " ++ show invalidE
 evalIntExpr (EArrRef Number i ix) = do
   ix' <- evalIntExpr ix
-  ivar <- lift $ getArrElem i ix'
+  ivar <- getArrElem i ix'
   case ivar of
     (IntVar (Just i)) ->
       return i
@@ -173,7 +192,7 @@ evalChrExpr (EId Letter s) = do
       throwError $ "Eval.evalChrExpr: invalid expression, " ++ show invalidE
 evalChrExpr (EArrRef Letter i ix) = do
   ix' <- evalIntExpr ix
-  ivar <- lift $ getArrElem i ix'
+  ivar <- getArrElem i ix'
   case ivar of
     (ChrVar (Just i)) ->
       return i
@@ -208,7 +227,7 @@ evalBoolExpr (EUnOp "!" e) = do
   return $ not v
 evalBoolExpr (EArrRef Boolean i ix) = do
   ix' <- evalIntExpr ix
-  bvar <- lift $ getArrElem i ix'
+  bvar <- getArrElem i ix'
   case bvar of
     (BolVar (Just i)) ->
       return i
@@ -229,6 +248,7 @@ evalBoolExpr (ECall Boolean f (APList ps)) = do
       return i
     invalidE ->
       throwError $ "Eval.evalBoolExpr: invalid expression, " ++ show invalidE
+evalBoolExpr (EBool b) = return b
 evalBoolExpr e = throwError $ "Eval.evalBoolExpr: invalid expression, "++ show e
 
 evalStrExpr :: Expr -> MExec String
@@ -241,7 +261,7 @@ evalStrExpr (EId Sentence i) = do
       throwError $ "Eval.evalStrExpr: invalid expression, " ++ show invalidE
 evalStrExpr (EArrRef Sentence i ix) = do
   ix' <- evalIntExpr ix
-  svar <- lift $ getArrElem i ix'
+  svar <- getArrElem i ix'
   case svar of
     (StrVar (Just s)) ->
       return s
@@ -268,6 +288,7 @@ evalArrExpr (EId (RefType _) i) = do
     invalidE ->
       throwError $ "Eval.evalArrExpr: invalid expression, " ++ show invalidE
 
+-- Function that provides access to all of the above evaluators without types
 evalExpr :: Expr -> MExec Var
 evalExpr e =
   case inferTypeP e of
@@ -277,6 +298,7 @@ evalExpr e =
     Boolean   -> (return . BolVar . Just) =<< evalBoolExpr e
     RefType _ -> (return . ArrVar)        =<< evalArrExpr  e
 
+-- Simulate a function call
 callF :: String -> [Var] -> MExec Var
 callF f args = do
   fId <- lift $ getVar f
@@ -290,11 +312,13 @@ callF f args = do
         _ -> throwError "Eval.callF: reached end of function body"
     d -> throwError $ "Eval.callF: invalid identifier " ++ f
 
+-- Run everything inside a body block
 runBody :: Body -> MExec (Maybe Var)
 runBody (EmptyBody) = return Nothing
 runBody (StmtBody cst) = runCompoundStmt cst
 runBody (DeclBody (DeclList ds) cst) = mapM_ runDecl ds >> runCompoundStmt cst
 
+-- Run a compound statement
 runCompoundStmt :: CompoundStmt -> MExec (Maybe Var)
 runCompoundStmt (CSList ss) =
   rcs ss
@@ -305,6 +329,7 @@ runCompoundStmt (CSList ss) =
                       then rcs ss
                       else return sRes
 
+-- Run a statement
 runStmt :: Stmt -> MExec (Maybe Var)
 runStmt (SBody b) = do
   lift enterBlock
@@ -357,6 +382,7 @@ runStmt l@(SLoop cond cst) = do
 runStmt (SIf ifs) =
   runIfs ifs
 
+-- Evaluate an if clause
 runIfs :: [IfClause] -> MExec (Maybe Var)
 runIfs [] = return Nothing
 runIfs ((If cond cst):rest) = do
@@ -367,6 +393,7 @@ runIfs ((If cond cst):rest) = do
 runIfs ((Else cst):rest) =
   runCompoundStmt cst
 
+-- Simulate a procedure call
 callP :: String -> [Var] -> MExec ()
 callP f args = do
   fd <- lift $ getVar f
@@ -377,6 +404,7 @@ callP f args = do
       lift $ exitMethod
     idecl -> throwError $ "Eval.callP: invalid identifier " ++ show idecl
 
+-- Read a typed value from stdin
 readT :: Type -> String -> MExec (Maybe Var)
 readT Number var = do
   input <- liftIO getLine
@@ -397,6 +425,7 @@ readT Boolean var = do
   assignIntExpr var $ EBool (rBool input)
   return Nothing
 
+--Reads a value from stdin into an array
 readA :: Type -> String -> Expr -> MExec (Maybe Var)
 readA Number var ix = do
   input <- liftIO getLine

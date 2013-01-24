@@ -29,7 +29,7 @@ executable compile
     Haskell2010
 
   GHC-options:
-    -Wall -O2
+    -O2
     -fno-warn-missing-signatures
 
   Hs-source-dirs:
@@ -39,13 +39,6 @@ executable compile
     MAlice/Console.hs
        
   default-extensions:
-    BangPatterns,
-    DeriveDataTypeable,
-    FlexibleContexts,
-    FlexibleInstances,
-    FunctionalDependencies,
-    MultiParamTypeClasses,
-    Rank2Types,
     BangPatterns
 
   build-depends:

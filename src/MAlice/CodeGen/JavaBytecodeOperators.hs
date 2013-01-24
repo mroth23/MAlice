@@ -1,8 +1,14 @@
 module MAlice.CodeGen.JavaBytecodeOperators where
 
+-- Module which return the instructions and 
+-- updated LabelTable for a given operator
+-- in a tuple.
+
 import MAlice.CodeGen.JavaBytecodeInstr
 import MAlice.CodeGen.JavaBytecodeUtil
 
+
+-- Binary operators.
 translateBinOp :: String -> LabelTable -> (JProgram, LabelTable)
 translateBinOp "+" labelTable  = ([IAdd], labelTable)
 translateBinOp "-" labelTable  = ([ISub], labelTable)
@@ -51,6 +57,7 @@ translateBinOp "<=" labelTable
        where
          (booleanCode, label, labelTable') = setBooleanCode labelTable
 
+-- Unary operators.
 translateUnOp :: String -> JProgram
 translateUnOp "-" = [INeg]
 translateUnOp "+" = []

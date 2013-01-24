@@ -1,5 +1,9 @@
 module MAlice.CodeGen.JavaBytecodeUtil where
 
+-- Module that have various utility functions
+-- generally accsssed by multiple modules.
+-- These come in handy often.
+
 import MAlice.CodeGen.JavaBytecodeInstr
 import MAlice.Language.Types
 
@@ -14,6 +18,7 @@ splitFunctionFromProgram (instr:rest)
       where
         (body, rest') = splitFunctionFromProgram rest
 
+-- Variable list given the max variable number.
 generateVarList :: Int -> [Int]
 generateVarList 0
   = [0]
@@ -27,8 +32,8 @@ generateNewLabel labelTable
   = generateNewLabel' labelTable 0
 generateNewLabel' :: LabelTable -> Int -> (String, LabelTable)
 generateNewLabel' labelTable int
-  | elem label labelTable           = generateNewLabel' labelTable (int+1)
-  | otherwise                       = (label, label:labelTable)
+  | elem label labelTable = generateNewLabel' labelTable (int+1)
+  | otherwise             = (label, label:labelTable)
     where
       label = "_label" ++ show int
 
@@ -38,9 +43,8 @@ data VarTableEntry
   --       Ident  Type           Ident  Loc Type
   = Global String String | Local String Int String
     deriving (Show, Eq)
+-- Return the table entry given the identifier and the table.
 lookupVarTableEntry :: String -> VarTable -> VarTableEntry
-lookupVarTableEntry _ []
-  = (Local "x" 9999 "I")
 lookupVarTableEntry str ((Global ident t):rest)
   | str == ident = (Global ident t)
 lookupVarTableEntry str ((Local ident int t):rest)
@@ -80,13 +84,13 @@ getJavaProgramString []
   = ""
 getJavaProgramString ((Constructor program):rest)
   = ".method public <init>()V\n"  ++
-    " .limit stack 100\n"                             ++
-    " .limit locals 100\n"                            ++
+    ".limit stack 100\n"                             ++
+    ".limit locals 100\n"                            ++
     "aload_0\n"                                       ++
     "dup\n"                                           ++
     "invokespecial java/lang/Object/<init>()V\n"      ++
-    constructorCode                                    ++
-    "invokevirtual " ++ getClassName ++ "/hatta()V\n"    ++
+    constructorCode                                   ++
+    "invokevirtual " ++ getClassName ++ "/hatta()V\n" ++
     "return\n"                                        ++
     ".end method\n"                                   ++
     rest'
@@ -139,7 +143,8 @@ inputCharHandling Letter
     [Invokevirtual "java/lang/String/sharAt" "I" "C"]
 inputCharHandling _
   = []
--- Internally chars are actually stored as ints, so when printing we must conver them.
+-- Internally chars are actually stored as ints, 
+-- so when printing we must conver them.
 printCharHandling :: Type -> JProgram
 printCharHandling Letter
   = [I2c]
@@ -147,12 +152,14 @@ printCharHandling _
   = []
 
 -- Some simple code to deal with booleans.
+-- Basically allows us to add 0-False 1-True to the top
+-- of the stack.
 setBooleanCode :: LabelTable -> (JProgram, Label, LabelTable)
 setBooleanCode labelTable
   = ([Ldc (ConsI 0)] ++
-    [Goto label']   ++
-    [LLabel label]  ++
-    [Ldc (ConsI 1)] ++
+    [Goto label']    ++
+    [LLabel label]   ++
+    [Ldc (ConsI 1)]  ++
     [LLabel label'],
     label, labelTable'')
       where
@@ -168,6 +175,9 @@ convertConstructor ((Constructor program):rest)
 convertConstructor (instr:rest)
   = instr:(convertConstructor rest)
 
+-- The actual lower level code for the constructor.
+-- Calls its superclass, sets up global variables
+-- and then runs hatta() before returning.
 convertConstructor' :: JProgram -> JProgram
 convertConstructor' program
   = [Func  "<init>" "" "V" 0]                        ++

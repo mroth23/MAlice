@@ -1,5 +1,9 @@
 module MAlice.CodeGen.JavaBytecodeMissingReturns where
 
+-- Module that will fix the missing returns on functions
+-- that use returns in branch. JVM being statically type
+-- and the bytecode verifier mean we have to do this.
+
 import MAlice.CodeGen.JavaBytecodeInstr
 import MAlice.CodeGen.JavaBytecodeUtil
 
@@ -19,6 +23,7 @@ setupMissingReturns (instr:rest)
 setupMissingReturn :: JProgram -> String -> JProgram
 setupMissingReturn [] _
   = []
+-- Checks for correct returns and adds them in if required.
 setupMissingReturn (instr:[Endmethod]) str
   | str == "I" && instr /= (IReturn)
       = [instr]                     ++

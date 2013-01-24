@@ -2,6 +2,11 @@ module MAlice.Transformation.Collect where
 
 import MAlice.Language.AST
 
+-- This very simple module collects all function and method definitions
+-- (they are now including all their free variables as arguments) and lifts
+-- them in front of their parent function (recursively). Step 3/3 of the lambda
+-- lifter.
+
 collect :: Program -> Program
 collect (Program ds) = Program $ collectDecls ds
 

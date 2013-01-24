@@ -10,6 +10,8 @@ import MAlice.Transformation.Types
 import MAlice.Language.AST as AST
 import MAlice.Language.Types
 
+-- Collects and concats all the free variables in various language
+-- constructs.
 freeInDecls :: ADecls -> FreeVars
 freeInDecls ds = nub $ concatMap freeInDecl ds
 
@@ -61,6 +63,10 @@ freeInIfs ifs = nub $ concatMap freeInIf ifs
 freeInIf :: AIfClause -> FreeVars
 freeInIf (AIf _ _ f) = f
 freeInIf (AElse _ f) = f
+
+-- Structurally recurse over everything and annotate on the go. For each
+-- AST node, a new one is created that has the same fields and an extra bit
+-- for storing free variables. Step 1/3 of the lambda lifter.
 
 annotateIdentifiers :: AST.Program -> ADecls
 annotateIdentifiers (AST.Program (DeclList ds)) =

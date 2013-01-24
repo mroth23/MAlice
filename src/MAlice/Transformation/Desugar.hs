@@ -13,6 +13,7 @@ import MAlice.Transformation.Strip
 -- so the (formerly) free variables are bound by function arguments. Finally,
 -- all the function definitions are collected and lifted from their original
 -- position to an appropriate place in global scope.
+-- rstrip then removes dead code and unused functions.
 
 desugarAST :: Program -> Program
 desugarAST =

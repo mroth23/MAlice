@@ -108,6 +108,7 @@ checkInput e@(EId v _) = do
   setContext $ "what was " ++ (show e) ++ "?"
   case v of
     (RefType _) -> logError . TypeError $ "Can't read in to reference type"
+    (Boolean)   -> logError . TypeError $ "Can't read in boolean values"
     _           -> return ()
 
 checkInput (EArrRef atype _ _) = do
